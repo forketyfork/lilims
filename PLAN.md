@@ -97,6 +97,14 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 5. **Document conversion workflow** in `Docs/ConversionGuide.md`.
 
 
+### WS-2 RuntimeCoreML tasks
+1. **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
+2. **Expose `TokenStreamDelegate`** – callback for each generated token.
+3. **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
+4. **Provide rope & rotary table kernels** via `MPSGraph` fallback.
+5. **Unit test** decoding 20 tokens from a TinyStories checkpoint.
+
+
 ---
 
 ## 7. Performance & profiling  
