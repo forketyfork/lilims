@@ -1,9 +1,33 @@
+from __future__ import annotations
+
 from pathlib import Path
 import sys
+import subprocess
+import tempfile
+import venv
+import importlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
+try:  # pragma: no cover - install numpy on demand
+    import numpy  # noqa: F401
+except Exception:
+    tmp = tempfile.mkdtemp(prefix="npvenv_")
+    env_dir = Path(tmp) / "venv"
+    venv.create(env_dir, with_pip=True)
+    pip = env_dir / "bin" / "pip"
+    subprocess.check_call([str(pip), "install", "numpy"])
+    site = (
+        env_dir
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    sys.path.insert(0, str(site))
+    importlib.invalidate_caches()
+    import numpy  # noqa: F401
+
 import Scripts.evaluate_perplexity as ep
 
 
