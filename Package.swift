@@ -10,7 +10,12 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "RuntimeCoreML",
+            path: "Sources/Runtime/CoreML"
+        ),
+        .target(
             name: "Lilims",
+            dependencies: ["RuntimeCoreML"],
             path: "Sources/Lilims"
         ),
         .executableTarget(
