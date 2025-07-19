@@ -92,8 +92,8 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 ### WS-1 CoreMLConversion tasks
 - [x] **Create `convert.py`** – convert gguf or PyTorch checkpoints to `.mlpackage` with INT4 weights.
 - [x] **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
-- [ ] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
-- [ ] **Add CI unit test** – fail if perplexity increases more than 3%.
+- [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
+- [x] **Add CI unit test** – fail if perplexity increases more than 3%.
 - [ ] **Document conversion workflow** in `Docs/ConversionGuide.md`.
 
 
