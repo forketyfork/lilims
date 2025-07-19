@@ -90,11 +90,11 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 | **WS‑10 CI/CD** | GitHub Actions: build, unit + integration tests on iPhone‑15, artifact upload to TestFlight. |
 | **WS‑11 AgentScripts** | YAML specs so code‑gen agents can claim tasks and commit PRs. |
 ### WS-1 CoreMLConversion tasks
-1. **Create `convert.py`** – convert gguf or PyTorch checkpoints to `.mlpackage` with INT4 weights.
-2. **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
-3. **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
-4. **Add CI unit test** – fail if perplexity increases more than 3%.
-5. **Document conversion workflow** in `Docs/ConversionGuide.md`.
+- [x] **Create `convert.py`** – convert gguf or PyTorch checkpoints to `.mlpackage` with INT4 weights.
+- [x] **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
+- [ ] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
+- [ ] **Add CI unit test** – fail if perplexity increases more than 3%.
+- [ ] **Document conversion workflow** in `Docs/ConversionGuide.md`.
 
 
 ### WS-2 RuntimeCoreML tasks
