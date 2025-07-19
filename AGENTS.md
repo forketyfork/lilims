@@ -9,4 +9,5 @@ This repository may be edited by automated coding agents. Please follow these ru
 5. When adding Swift files, include minimal DocC comments for public APIs.
 6. Always run `swift test` before committing.
 7. Run `ruff check Scripts` and `pytest Scripts/tests` to lint and test the Python utilities.
+8. Mark completed tasks as done in `PLAN.md` when you finish a work item.
 
