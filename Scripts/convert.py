@@ -14,12 +14,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import coremltools as ct
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
 
 def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
     """Convert a Hugging Face model to Core ML."""
+    import coremltools as ct
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
     model = AutoModelForCausalLM.from_pretrained(model_id)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     mlmodel = ct.converters.transformers.convert(
