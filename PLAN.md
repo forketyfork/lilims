@@ -98,11 +98,18 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 
 
 ### WS-2 RuntimeCoreML tasks
-1. **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
-2. **Expose `TokenStreamDelegate`** – callback for each generated token.
-3. **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
-4. **Provide rope & rotary table kernels** via `MPSGraph` fallback.
-5. **Unit test** decoding 20 tokens from a TinyStories checkpoint.
+- [ ] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
+- [ ] **Expose `TokenStreamDelegate`** – callback for each generated token.
+- [ ] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
+- [ ] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
+- [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
+
+### WS-3 RuntimeLlamaCpp tasks
+- [ ] **Create Swift wrapper for llama.cpp C API**
+- [ ] **Implement zero-copy bridging for model buffers**
+- [ ] **Add chunked decode loop with callback support**
+- [ ] **Unit test** parity with CoreML backend on TinyStories
+- [ ] **Document building llama.cpp for iOS**
 
 
 ---
