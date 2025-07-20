@@ -13,11 +13,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install dependencies
+      - name: Set up virtual environment
         run: |
-          python -m pip install --upgrade pip
-          pip install ruff pytest
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint
-        run: ruff check Scripts
+        run: .venv/bin/ruff check Scripts
       - name: Test
-        run: pytest Scripts/tests
+        run: .venv/bin/pytest Scripts/tests
