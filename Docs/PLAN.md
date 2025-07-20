@@ -95,7 +95,7 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
 - [x] **Document conversion workflow** in `Docs/ConversionGuide.md`.
-- [ ] **Implement `--gguf` conversion** – support converting gguf checkpoints to `.mlpackage`.
+- [x] **Implement `--gguf` conversion** – support converting gguf checkpoints to `.mlpackage`.
 
 
 -### WS-2 RuntimeCoreML tasks

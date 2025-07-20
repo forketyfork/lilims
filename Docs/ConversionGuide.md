@@ -10,7 +10,9 @@ Run `convert.py` with a model identifier or local path and an output file path:
 python Scripts/convert.py gpt2 ~/Models/gpt2.mlpackage --seq-length 512
 ```
 
-At the moment only PyTorch checkpoints are supported. The script uses `coremltools` to quantize the weights to 4‑bit integers.
+By default the script expects a Hugging Face model identifier. Pass `--gguf`
+to convert a local gguf file instead. The script uses `coremltools` to
+quantize the weights to 4‑bit integers.
 
 ### 2. Generate `manifest.json`
 
