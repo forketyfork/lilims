@@ -94,7 +94,7 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 - [x] **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
-- [ ] **Document conversion workflow** in `Docs/ConversionGuide.md`.
+- [x] **Document conversion workflow** in `Docs/ConversionGuide.md`.
 
 
 -### WS-2 RuntimeCoreML tasks
