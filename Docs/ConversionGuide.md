@@ -2,6 +2,15 @@
 
 This guide explains how to convert a Hugging Face model or gguf checkpoint into a Core ML `.mlpackage` with INT4 weights. The Python scripts live under the `Scripts` directory and require Python 3.13.
 
+Before running any script, create a virtual environment and install the
+dependencies listed in `requirements.txt`:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+```
+
 ### 1. Convert the model
 
 Run `convert.py` with a model identifier or local path and an output file path:
