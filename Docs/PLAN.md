@@ -1,6 +1,6 @@
 ## Executive summary  
 
-Ship a **chat‑style iOS app** whose core is a *Swift* inference runtime able to load any small transformer that has been (a) quantized to 4–8 bit and (b) converted to **Core ML**. The runtime first tries to schedule attention and MLP blocks on ANE through Core ML; if an op is unsupported it falls back to GPU with **MPSGraph**, and finally to CPU with **BNNS**. A thin abstraction layer also lets you swap in the proven **llama.cpp** kernel via a Swift package for experimentation. The plan below stages work in eleven workstreams with explicit deliverables, automated tests, and CI gates.  Apple’s recent WWDC 24 sessions, Core ML documentation, and community projects (SpeziLLM, swift‑coreml‑transformers, ggml/gguf) provide all the building blocks and performance data you need.  [oai_citation:0‡Apple Developer](https://developer.apple.com/videos/play/wwdc2024/10161/?utm_source=chatgpt.com) [oai_citation:1‡Apple Developer](https://developer.apple.com/machine-learning/core-ml/?utm_source=chatgpt.com) [oai_citation:2‡Apple Developer](https://developer.apple.com/documentation/metalperformanceshadersgraph?utm_source=chatgpt.com) [oai_citation:3‡Apple Developer](https://developer.apple.com/videos/play/wwdc2024/10211/?utm_source=chatgpt.com) [oai_citation:4‡Apple Developer](https://developer.apple.com/documentation/accelerate/bnns?utm_source=chatgpt.com) [oai_citation:5‡GitHub](https://github.com/StanfordSpezi/SpeziLLM?utm_source=chatgpt.com) [oai_citation:6‡GitHub](https://github.com/klyap/swift-coreml-transformers-demo?utm_source=chatgpt.com) [oai_citation:7‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/4423?utm_source=chatgpt.com) [oai_citation:8‡GitHub](https://github.com/hollance/neural-engine/blob/master/docs/ane-vs-gpu.md?utm_source=chatgpt.com) [oai_citation:9‡arXiv](https://arxiv.org/html/2403.12844?utm_source=chatgpt.com)
+Ship a **chat‑style iOS app** whose core is a *Swift* inference runtime able to load any small transformer that has been (a) quantized to 4–8 bit and (b) converted to **Core ML**. Core ML heuristics dispatch ops across ANE, GPU, and CPU—we profile but cannot force ANE placement. The plan focuses on a single Core ML backend with an 8 k context window.  Apple’s recent WWDC 24 sessions, Core ML documentation, and community projects (swift‑coreml‑transformers, ggml/gguf) provide all the building blocks and performance data you need.  [oai_citation:0‡Apple Developer](https://developer.apple.com/videos/play/wwdc2024/10161/?utm_source=chatgpt.com) [oai_citation:1‡Apple Developer](https://developer.apple.com/machine-learning/core-ml/?utm_source=chatgpt.com) [oai_citation:2‡Apple Developer](https://developer.apple.com/documentation/metalperformanceshadersgraph?utm_source=chatgpt.com) [oai_citation:3‡Apple Developer](https://developer.apple.com/videos/play/wwdc2024/10211/?utm_source=chatgpt.com) [oai_citation:4‡Apple Developer](https://developer.apple.com/documentation/accelerate/bnns?utm_source=chatgpt.com) [oai_citation:6‡GitHub](https://github.com/klyap/swift-coreml-transformers-demo?utm_source=chatgpt.com) [oai_citation:7‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/4423?utm_source=chatgpt.com) [oai_citation:8‡GitHub](https://github.com/hollance/neural-engine/blob/master/docs/ane-vs-gpu.md?utm_source=chatgpt.com) [oai_citation:9‡arXiv](https://arxiv.org/html/2403.12844?utm_source=chatgpt.com)
 
 ---
 
@@ -22,14 +22,12 @@ Ship a **chat‑style iOS app** whose core is a *Swift* inference runtime able t
 App
  ├─ UI (SwiftUI)
  ├─ ModelManager              (downloads, versioning, disk quotas)
- ├─ Runtime                   (protocol)
- │    ├─ CoreMLBackend        (ANE/GPU first)
- │    ├─ LlamaCppBackend      (fallback / benchmarking)
+ ├─ Runtime                   (CoreMLBackend)
  │    └─ Tokenizer            (Swift port of HF tokenizer)
  └─ Utilities                 (logging, metrics, telemetry off switch)
 ```
-
-*The Runtime protocol exposes `generate(prompt:stream:)`, interrupt, and profile APIs so UI and tests stay backend‑agnostic.*   [oai_citation:12‡GitHub](https://github.com/StanfordSpezi/SpeziLLM?utm_source=chatgpt.com)
+*The Runtime exposes `generate(prompt:stream:)`, interrupt, and profile APIs.*
+[oai_citation:12‡GitHub](https://github.com/StanfordSpezi/SpeziLLM?utm_source=chatgpt.com)
 
 ---
 
@@ -50,37 +48,59 @@ App
    ```  
    Follow Apple’s PyTorch conversion workflow; enable *weight‑only* INT4 plus activation FP16.  [oai_citation:14‡apple.github.io](https://apple.github.io/coremltools/docs-guides/source/convert-pytorch.html?utm_source=chatgpt.com) [oai_citation:15‡apple.github.io](https://apple.github.io/coremltools/docs-guides/source/convert-pytorch-workflow.html?utm_source=chatgpt.com) [oai_citation:16‡apple.github.io](https://apple.github.io/coremltools/docs-guides/source/opt-quantization-overview.html?utm_source=chatgpt.com)
 
-3. **Package format**  
-   Store models as `.mlpackage` plus a side‑car JSON manifest (name, size, SHA256, compatible runtime version).  Provide a migration script for gguf→mlpackage so users can import community checkpoints.  [oai_citation:17‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/4423?utm_source=chatgpt.com)
+3. **Package format**
+   Store models as `.mlpackage` plus a side‑car JSON manifest (name, size, SHA256, **semver**, compatible runtime version).  Provide a migration script for gguf→mlpackage so users can import community checkpoints.  [oai_citation:17‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/4423?utm_source=chatgpt.com)
+
+## 3.5 Quantization validation
+
+1. **Baseline measurements required**
+   - FP16 baseline perplexity on your eval set
+   - INT8 degradation (should be <1%)
+   - INT4 degradation (expect 3-5%)
+   - Actual tokens/sec on target hardware with each precision
+
+2. **Core ML quantization limitations**
+   - Weight-only quantization (activations stay FP16)
+   - Limited op support in INT4 mode
+   - Some layers may silently fall back to FP32
 
 ---
 
-## 4. Inference engine design (CoreMLBackend)  
+## 4. Inference engine design (CoreMLBackend)
 
-| Layer | Key decisions | References |
-|-------|---------------|------------|
-| **Graph execution** | Use *Core ML Stateful evaluation* so KV‑caches persist on ANE DRAM |  [oai_citation:18‡Apple Developer](https://developer.apple.com/videos/play/wwdc2024/10161/?utm_source=chatgpt.com) |
-| **Custom ops** | Implement rope + slice kernels in **MPSGraph** when Core ML lacks them |  [oai_citation:19‡Apple Developer](https://developer.apple.com/documentation/metalperformanceshadersgraph?utm_source=chatgpt.com) [oai_citation:20‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/6871?utm_source=chatgpt.com) |
-| **CPU fallback** | BNNSGraph path guarantees determinism for <A14 devices |  [oai_citation:21‡Apple Developer](https://developer.apple.com/documentation/Accelerate/supporting-real-time-ml-inference-on-the-cpu?utm_source=chatgpt.com) [oai_citation:22‡Apple Developer](https://developer.apple.com/documentation/accelerate/bnns?utm_source=chatgpt.com) |
-| **Memory management** | Paged KV cache allotment (32 k tokens ≈ 512 MB INT4) with LRU eviction |
-
-Runtime chooses the fastest processor via `MLComputeUnit.all`, then inspects the generated *Core ML performance report* to validate that attention matmuls landed on ANE; if not, it logs an optimization ticket.  [oai_citation:23‡GitHub](https://github.com/hollance/neural-engine/blob/master/docs/ane-vs-gpu.md?utm_source=chatgpt.com)  
+| Layer | Key decisions | Reality check |
+|-------|---------------|--------------|
+| **Graph execution** | Use Core ML async prediction API | ANE scheduling is opaque - profile but don't expect control |
+| **Custom ops** | Avoid custom ops initially - use only Core ML native ops | MPSGraph custom ops will likely run on GPU, defeating ANE purpose |
+| **Memory management** | Start with 8k context, not 32k | Calculate actual memory: (2 * num_layers * seq_len * hidden_dim * 2 bytes) |
+| **Fallback strategy** | Single backend only - Core ML or llama.cpp, not both | Pick one and optimize it properly |
 
 ---
 
-## 5. Alternative backend: llama.cpp (LlamaCppBackend)  
+## 5. Backend strategy
 
-Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap between Metal or CPU kernels and compare throughput without touching UI code. Expose the same Runtime protocol.  [oai_citation:24‡The Swift Package Index](https://swiftpackageindex.com/StanfordSpezi/SpeziLLM?utm_source=chatgpt.com) [oai_citation:25‡GitHub](https://github.com/ggml-org/llama.cpp/discussions/4423?utm_source=chatgpt.com)  
+Choose ONE:
+- **Option A**: Core ML only - maximize Apple platform integration
+- **Option B**: llama.cpp only - maximize model compatibility
+
+Don't build both. The switching abstraction adds complexity for no user benefit.
 
 ---
 
-## 6. Swift implementation workstreams  
+## 6. Swift implementation workstreams
+
+Cross-cutting concerns:
+- **Error handling**: surface model load failures and OOM mid-generation gracefully.
+- **Background execution**: request `beginBackgroundTask` during long generations.
+- **Model versioning**: manifest semantic versioning; runtime rejects incompatible models.
+- **Streaming backpressure**: use bounded `AsyncSequence` to avoid dropped tokens.
+- **Testing**: unit tests for tokenizer, context window, and error paths; integration tests for generation and memory limits.
 
 | ID | Folder | Tasks (can run in parallel) |
 |----|--------|-----------------------------|
 | **WS‑1 CoreMLConversion** | Scripts & notebooks for model -> `.mlpackage`; unit tests validate perplexity drop ≤ 3 % vs FP16. |
 | **WS‑2 RuntimeCoreML** | Build token loop, streaming callback, KV cache tensors, rope & rotary tables. |
-| **WS‑3 RuntimeLlamaCpp** | Wrap C API, zero‑copy buffers, chunked decode. |
+| **WS‑3 ContextWindow** | Implement sliding window attention, memory-mapped weight loading, batch prefill optimization |
 | **WS‑4 Tokenizer** | Port GPT‑2 BPE to Swift + SIMD, fuzz against HuggingFace tokenizer.json. |
 | **WS‑5 ModelManager** | Async download with checksum, iCloud exclusion, LRU purge. |
 | **WS‑6 BenchmarkKit** | XCUITests measuring tokens/s and energy via `metricKit`. |
@@ -98,19 +118,20 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 - [x] **Implement `--gguf` conversion** – support converting gguf checkpoints to `.mlpackage`.
 
 
--### WS-2 RuntimeCoreML tasks
+### WS-2 RuntimeCoreML tasks
 - [x] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
 - [ ] **Expose `TokenStreamDelegate`** – callback for each generated token.
 - [ ] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
 - [ ] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
+- [ ] **Support backpressure-aware streaming** with `AsyncSequence`
+- [ ] **Handle OOM errors** and surface to callers
 - [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
 
-### WS-3 RuntimeLlamaCpp tasks
-- [ ] **Create Swift wrapper for llama.cpp C API**
-- [ ] **Implement zero-copy bridging for model buffers**
-- [ ] **Add chunked decode loop with callback support**
-- [ ] **Unit test** parity with CoreML backend on TinyStories
-- [ ] **Document building llama.cpp for iOS**
+### WS-3 ContextWindow tasks
+- [ ] **Implement sliding window attention**
+- [ ] **Add memory-mapped weight loading**
+- [ ] **Optimize batch prefill**
+
 
 
 ---
@@ -127,7 +148,8 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 
 * **Startup wizard**: offer default 400 MB TinyStories and let users download larger checkpoints.  
 * **Safety**: embed an optional local moderation classifier; disable on‑device if user is under 16 (age‑gate).  
-* **Accessibility**: live VoiceOver announcements for streamed tokens.  
+* **Accessibility**: live VoiceOver announcements for streamed tokens.
+* **Background execution**: request background task time for long generations.
 
 ---
 
@@ -148,7 +170,6 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
   /Sources
      /Runtime
         /CoreML
-        /LlamaCpp
         /Tokenizer
      /UI
   /Tests           (unit)
@@ -161,17 +182,27 @@ Embed **ggml** via Swift Package **SpeziLLM**.  This lets power users swap betwe
 
 ---
 
-## 11. Milestones (suggested 10‑week schedule)  
+## 11. Milestones (suggested 20‑week schedule)
 
-| Week | Deliverable |
+| Weeks | Deliverable |
 |------|-------------|
-| 1 | Phi‑2 converted, TinyStories unit tests passing (WS‑1,4) |
-| 2 | CoreMLBackend generates single token, benchmark harness (WS‑2,6) |
-| 3 | Streamed generation demo in console |
-| 4 | SwiftUI chat UI & model picker (WS‑7) |
-| 5 | LlamaCppBackend parity & perf compare (WS‑3) |
-| 6 | ModelManager downloads & storage quota (WS‑5) |
-| 7 | Energy profiling, KV‑cache paging (WS‑2) |
-| 8 | Accessibility & moderation (WS‑7) |
-| 9 | Telemetry opt‑in, crash reporting, CI gates (WS‑8,10) |
-| 10 | Beta build on TestFlight, dog‑food and iterate |
+| 1‑2 | Phi‑2 converted, TinyStories unit tests passing (WS‑1,4) |
+| 3‑4 | CoreMLBackend generates single token, benchmark harness (WS‑2,6) |
+| 5‑6 | Streamed generation demo in console |
+| 7‑8 | SwiftUI chat UI & model picker (WS‑7) |
+| 9‑10 | ContextWindow features: sliding attention, memory-mapped weights (WS‑3) |
+| 11‑12 | ModelManager downloads & storage quota (WS‑5) |
+| 13‑14 | Energy profiling, KV‑cache paging (WS‑2) |
+| 15‑16 | Accessibility & moderation (WS‑7) |
+| 17‑18 | Telemetry opt‑in, crash reporting, CI gates (WS‑8,10) |
+| 19‑20 | Beta build on TestFlight, dog‑food and iterate |
+
+---
+
+## 12. Pre-launch validation gates
+
+Before any TestFlight release:
+1. Memory profiling on 6GB RAM device (iPhone 12) with 8k context
+2. Thermal throttling test: 5-minute continuous generation
+3. Actual tokens/sec measurement vs. claims
+4. Binary size with embedded model (must be <200MB for OTA updates)
