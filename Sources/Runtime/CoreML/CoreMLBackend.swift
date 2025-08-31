@@ -7,10 +7,16 @@ import Foundation
 public final class CoreMLBackend {
     private let model: MLModel
     private var state: MLFeatureProvider?
+    /// Delegate notified as tokens are generated.
+    public weak var delegate: TokenStreamDelegate?
 
     /// Initializes the backend with a compiled Core ML model at *url*.
-    public init(modelAt url: URL) throws {
+    /// - Parameters:
+    ///   - url: Location of the compiled Core ML model.
+    ///   - delegate: Optional stream delegate to receive tokens.
+    public init(modelAt url: URL, delegate: TokenStreamDelegate? = nil) throws {
         self.model = try MLModel(contentsOf: url)
+        self.delegate = delegate
     }
 
     /// Generates up to `maxTokens` continuations for the given `prompt`.
@@ -35,6 +41,7 @@ public final class CoreMLBackend {
                 break
             }
             tokens.append(next)
+            delegate?.didGenerate(token: next)
         }
         return tokens
     }
