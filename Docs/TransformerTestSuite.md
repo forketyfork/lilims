@@ -46,49 +46,49 @@ This document outlines a comprehensive test suite for the stateful transformer m
 ## 3. Rotary Position Embeddings (RoPE)
 
 ### Table Generation
-- [ ] Test rotary tables shape correctness
-- [ ] Test sine/cosine values are in range [-1, 1]
-- [ ] Test tables with different sequence lengths (1, 10, 512, 2048)
-- [ ] Test tables with different head dimensions (32, 64, 128, 256)
-- [ ] Test tables with different base frequencies
-- [ ] Test precondition failure for odd head dimensions
-- [ ] Test numerical accuracy of generated frequencies
-- [ ] Test memory efficiency for large tables
+- [x] Test rotary tables shape correctness
+- [x] Test sine/cosine values are in range [-1, 1]
+- [x] Test tables with different sequence lengths (1, 10, 512, 2048)
+- [x] Test tables with different head dimensions (32, 64, 128, 256)
+- [x] Test tables with different base frequencies
+- [x] Test precondition failure for odd head dimensions
+- [x] Test numerical accuracy of generated frequencies
+- [x] Test memory efficiency for large tables
 
 ### Application
-- [ ] Test rotate_half function correctness
-- [ ] Test RoPE application to query tensors
-- [ ] Test RoPE application to key tensors
-- [ ] Test position-dependent rotation behavior
-- [ ] Test RoPE with different positions in sequence
-- [ ] Test RoPE preserves tensor shapes
-- [ ] Test RoPE numerical stability
+- [x] Test rotate_half function correctness
+- [x] Test RoPE application to query tensors
+- [x] Test RoPE application to key tensors
+- [x] Test position-dependent rotation behavior
+- [x] Test RoPE with different positions in sequence
+- [x] Test RoPE preserves tensor shapes
+- [x] Test RoPE numerical stability
 
 ## 4. Multi-Head Attention
 
 ### Projection Operations
-- [ ] Test query projection shape transformation
-- [ ] Test key projection shape transformation
-- [ ] Test value projection shape transformation
-- [ ] Test output projection back to embedding dimension
-- [ ] Test projection weight application correctness
+- [x] Test query projection shape transformation
+- [x] Test key projection shape transformation
+- [x] Test value projection shape transformation
+- [x] Test output projection back to embedding dimension
+- [x] Test projection weight application correctness
 
 ### Head Reshaping
-- [ ] Test reshapeForHeads splits embedding correctly
-- [ ] Test reshapeFromHeads concatenates heads properly
-- [ ] Test head dimension calculation
-- [ ] Test reshaping with different head counts
-- [ ] Test reshaping preserves data ordering
+- [x] Test reshapeForHeads splits embedding correctly
+- [x] Test reshapeFromHeads concatenates heads properly
+- [x] Test head dimension calculation
+- [x] Test reshaping with different head counts
+- [x] Test reshaping preserves data ordering
 
 ### Attention Computation
-- [ ] Test attention score calculation (Q * K^T)
-- [ ] Test attention scaling factor (1/sqrt(head_dim))
-- [ ] Test causal mask application
-- [ ] Test softmax normalization of attention weights
-- [ ] Test attention weight application to values
-- [ ] Test attention with single head
-- [ ] Test attention with multiple heads
-- [ ] Test attention numerical stability with large values
+- [x] Test attention score calculation (Q * K^T)
+- [x] Test attention scaling factor (1/sqrt(head_dim))
+- [x] Test causal mask application
+- [x] Test softmax normalization of attention weights
+- [x] Test attention weight application to values
+- [x] Test attention with single head
+- [x] Test attention with multiple heads
+- [x] Test attention numerical stability with large values
 
 ## 5. KV Cache Management
 
