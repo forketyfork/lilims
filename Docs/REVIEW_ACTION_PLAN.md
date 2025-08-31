@@ -19,10 +19,10 @@
 ## Priority 1: Fix Model Conversion Pipeline
 
 ### Task 1.1: Implement proper CoreML conversion
-- [ ] Use coremltools ML Program format with stateful models
-- [ ] Support flexible input shapes for sequences
-- [ ] Implement proper INT4 weight quantization
-- [ ] Add model architecture detection (GPT-2, Phi-2, Gemma)
+- [x] Use coremltools ML Program format with stateful models
+- [x] Support flexible input shapes for sequences
+- [x] Implement proper INT4 weight quantization
+- [x] Add model architecture detection (GPT-2, Phi-2, Gemma)
 
 ### Task 1.2: Create manifest generator
 - [ ] Implement `Scripts/manifest.py` to generate model metadata
