@@ -27,7 +27,8 @@ let package = Package(
         .testTarget(
             name: "LilimsTests",
             dependencies: ["Lilims"],
-            path: "Tests/LilimsTests"
+            path: "Tests/LilimsTests",
+            resources: []
         )
     ]
 )

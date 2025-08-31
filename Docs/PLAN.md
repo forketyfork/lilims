@@ -127,10 +127,10 @@ Cross-cutting concerns:
 - [x] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
 - [x] **Support backpressure-aware streaming** with `AsyncSequence`
 - [x] **Handle OOM errors** and surface to callers
-- [ ] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k instead of relying on a precomputed `token` feature.
-- [ ] **Feed KV cache back into model inputs** so past context is reused across calls.
-- [ ] **Add cancellation support** for long‑running generation.
-- [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
+- [x] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k instead of relying on a precomputed `token` feature.
+- [x] **Feed KV cache back into model inputs** so past context is reused across calls.
+- [x] **Add cancellation support** for long‑running generation.
+- [x] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
 
 ### WS-3 ContextWindow tasks
 - [ ] **Implement sliding window attention**
