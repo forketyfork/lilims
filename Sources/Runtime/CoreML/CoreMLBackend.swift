@@ -32,20 +32,31 @@ public final class CoreMLBackend {
 
     /// Generates up to `maxTokens` continuations for the given `prompt`.
     /// - Returns: The combined prompt and generated tokens.
-    public func generate(prompt: [Int32], maxTokens: Int) throws -> [Int32] {
+    public func generate(
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float = 1.0,
+        topK: Int = 0
+    ) throws -> [Int32] {
         var tokens = prompt
+        state = nil
         let options = MLPredictionOptions()
         options.usesCPUOnly = false
         for _ in 0..<maxTokens {
-            let input = try MLDictionaryFeatureProvider(dictionary: [
+            try Task.checkCancellation()
+            var features: [String: MLFeatureValue] = [
                 "token": MLFeatureValue(int32: tokens.last ?? 0)
-            ])
-            let combinedInput: MLFeatureProvider
+            ]
             if let state = state {
-                combinedInput = MLDictionaryFeatureProvider(from: input, merging: state)
-            } else {
-                combinedInput = input
+                for name in state.featureNames {
+                    features[name] = state.featureValue(for: name)
+                }
+            } else if let cache = kvCache?.asFeatureProvider() {
+                for name in cache.featureNames {
+                    features[name] = cache.featureValue(for: name)
+                }
             }
+            let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
             let output: MLFeatureProvider
             do {
                 output = try model.prediction(from: combinedInput, options: options)
@@ -54,9 +65,10 @@ public final class CoreMLBackend {
             }
             state = output
             updateCache(from: output)
-            guard let next = output.featureValue(for: "token")?.int32Value else {
+            guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
                 break
             }
+            let next = sample(from: logits, temperature: temperature, topK: topK)
             tokens.append(next)
             delegate?.didGenerate(token: next)
         }
@@ -71,23 +83,34 @@ public final class CoreMLBackend {
     ///   - prompt: Prefix tokens to seed generation.
     ///   - maxTokens: Maximum number of tokens to produce.
     /// - Returns: Async sequence yielding tokens as they are generated.
-    public func stream(prompt: [Int32], maxTokens: Int) -> AsyncThrowingStream<Int32, Error> {
+    public func stream(
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float = 1.0,
+        topK: Int = 0
+    ) -> AsyncThrowingStream<Int32, Error> {
         AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             Task {
                 do {
                     var tokens = prompt
+                    state = nil
                     let options = MLPredictionOptions()
                     options.usesCPUOnly = false
                     for _ in 0..<maxTokens {
-                        let input = try MLDictionaryFeatureProvider(dictionary: [
+                        try Task.checkCancellation()
+                        var features: [String: MLFeatureValue] = [
                             "token": MLFeatureValue(int32: tokens.last ?? 0)
-                        ])
-                        let combinedInput: MLFeatureProvider
+                        ]
                         if let state = state {
-                            combinedInput = try MLDictionaryFeatureProvider(from: input, merging: state)
-                        } else {
-                            combinedInput = input
+                            for name in state.featureNames {
+                                features[name] = state.featureValue(for: name)
+                            }
+                        } else if let cache = kvCache?.asFeatureProvider() {
+                            for name in cache.featureNames {
+                                features[name] = cache.featureValue(for: name)
+                            }
                         }
+                        let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
                         let output: MLFeatureProvider
                         do {
                             output = try model.prediction(from: combinedInput, options: options)
@@ -96,12 +119,14 @@ public final class CoreMLBackend {
                         }
                         state = output
                         updateCache(from: output)
-                        guard let next = output.featureValue(for: "token")?.int32Value else {
+                        guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
                             break
                         }
+                        let next = sample(from: logits, temperature: temperature, topK: topK)
                         tokens.append(next)
                         delegate?.didGenerate(token: next)
                         while continuation.yield(next) == .dropped {
+                            try Task.checkCancellation()
                             await Task.yield()
                         }
                     }
@@ -119,9 +144,7 @@ public final class CoreMLBackend {
               let valueArray = output.featureValue(for: "value")?.multiArrayValue else {
             return
         }
-        let key = MLShapedArray<Float16>(keyArray)
-        let value = MLShapedArray<Float16>(valueArray)
-        kvCache?.append(key: key, value: value)
+        kvCache?.append(key: keyArray, value: valueArray)
     }
 }
 
@@ -150,8 +173,8 @@ private extension MLDictionaryFeatureProvider {
 /// Simple key/value cache storing the most recent `capacity` entries.
 private final class KVCache {
     private let capacity: Int
-    private var keys: [MLShapedArray<Float16>] = []
-    private var values: [MLShapedArray<Float16>] = []
+    private var keys: [MLMultiArray] = []
+    private var values: [MLMultiArray] = []
 
     /// Creates a cache with room for `capacity` tokens.
     /// - Parameter capacity: Maximum number of tokens to keep.
@@ -163,7 +186,7 @@ private final class KVCache {
     /// - Parameters:
     ///   - key: Key tensor for the token.
     ///   - value: Value tensor for the token.
-    func append(key: MLShapedArray<Float16>, value: MLShapedArray<Float16>) {
+    func append(key: MLMultiArray, value: MLMultiArray) {
         keys.append(key)
         values.append(value)
         if keys.count > capacity {
@@ -171,5 +194,49 @@ private final class KVCache {
             values.removeFirst()
         }
     }
+
+    /// Creates a feature provider representing the current cache contents.
+    func asFeatureProvider() -> MLFeatureProvider? {
+        guard let key = keys.last, let value = values.last else { return nil }
+        return try? MLDictionaryFeatureProvider(dictionary: [
+            "key": MLFeatureValue(multiArray: key),
+            "value": MLFeatureValue(multiArray: value)
+        ])
+    }
+}
+
+/// Sample a token index from *logits* using temperature and top-k filtering.
+private func sample(
+    from logits: MLMultiArray,
+    temperature: Float,
+    topK: Int
+) -> Int32 {
+    var values = MLShapedArray<Float32>(logits).scalars
+    if temperature != 1 {
+        for i in 0..<values.count {
+            values[i] /= temperature
+        }
+    }
+    if topK > 0 && topK < values.count {
+        let threshold = values.sorted(by: >)[topK - 1]
+        for i in 0..<values.count where values[i] < threshold {
+            values[i] = -.infinity
+        }
+    }
+    let maxVal = values.max() ?? 0
+    var expVals = [Float](repeating: 0, count: values.count)
+    var sum: Float = 0
+    for i in 0..<values.count {
+        expVals[i] = Float(exp(Double(values[i] - maxVal)))
+        sum += expVals[i]
+    }
+    var rnd = Float.random(in: 0..<sum)
+    for i in 0..<expVals.count {
+        rnd -= expVals[i]
+        if rnd <= 0 {
+            return Int32(i)
+        }
+    }
+    return Int32(expVals.count - 1)
 }
 #endif
