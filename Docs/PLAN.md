@@ -115,7 +115,9 @@ Cross-cutting concerns:
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
 - [x] **Document conversion workflow** in `Docs/ConversionGuide.md`.
-- [x] **Implement `--gguf` conversion** – support converting gguf checkpoints to `.mlpackage`.
+- [ ] **Finalize `--gguf` conversion** – current script only validates the GGUF header; implement real weight loading and Core ML export.
+- [ ] **Add TinyStories dataset helper** – download and cache the evaluation corpus for `evaluate_perplexity.py`.
+- [ ] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
 
 
 ### WS-2 RuntimeCoreML tasks
@@ -125,6 +127,9 @@ Cross-cutting concerns:
 - [x] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
 - [x] **Support backpressure-aware streaming** with `AsyncSequence`
 - [x] **Handle OOM errors** and surface to callers
+- [ ] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k instead of relying on a precomputed `token` feature.
+- [ ] **Feed KV cache back into model inputs** so past context is reused across calls.
+- [ ] **Add cancellation support** for long‑running generation.
 - [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
 
 ### WS-3 ContextWindow tasks
