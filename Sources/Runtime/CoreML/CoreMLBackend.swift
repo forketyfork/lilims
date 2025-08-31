@@ -7,6 +7,7 @@ import Foundation
 public final class CoreMLBackend {
     private let model: MLModel
     private var state: MLFeatureProvider?
+    private var kvCache: KVCache?
     /// Delegate notified as tokens are generated.
     public weak var delegate: TokenStreamDelegate?
 
@@ -14,9 +15,13 @@ public final class CoreMLBackend {
     /// - Parameters:
     ///   - url: Location of the compiled Core ML model.
     ///   - delegate: Optional stream delegate to receive tokens.
-    public init(modelAt url: URL, delegate: TokenStreamDelegate? = nil) throws {
+    ///   - maxCacheTokens: Maximum number of tokens to keep in the KV cache.
+    public init(modelAt url: URL, delegate: TokenStreamDelegate? = nil, maxCacheTokens: Int = 0) throws {
         self.model = try MLModel(contentsOf: url)
         self.delegate = delegate
+        if maxCacheTokens > 0 {
+            self.kvCache = KVCache(capacity: maxCacheTokens)
+        }
     }
 
     /// Generates up to `maxTokens` continuations for the given `prompt`.
@@ -37,6 +42,7 @@ public final class CoreMLBackend {
             }
             let output = try model.prediction(from: combinedInput, options: options)
             state = output
+            updateCache(from: output)
             guard let next = output.featureValue(for: "token")?.int32Value else {
                 break
             }
@@ -44,6 +50,17 @@ public final class CoreMLBackend {
             delegate?.didGenerate(token: next)
         }
         return tokens
+    }
+
+    /// Extracts key/value tensors from *output* and stores them in the cache.
+    private func updateCache(from output: MLFeatureProvider) {
+        guard let keyArray = output.featureValue(for: "key")?.multiArrayValue,
+              let valueArray = output.featureValue(for: "value")?.multiArrayValue else {
+            return
+        }
+        let key = MLShapedArray<Float16>(keyArray)
+        let value = MLShapedArray<Float16>(valueArray)
+        kvCache?.append(key: key, value: value)
     }
 }
 
@@ -57,6 +74,32 @@ private extension MLDictionaryFeatureProvider {
             dict[feature] = b.featureValue(for: feature)
         }
         try self.init(dictionary: dict)
+    }
+}
+
+/// Simple key/value cache storing the most recent `capacity` entries.
+private final class KVCache {
+    private let capacity: Int
+    private var keys: [MLShapedArray<Float16>] = []
+    private var values: [MLShapedArray<Float16>] = []
+
+    /// Creates a cache with room for `capacity` tokens.
+    /// - Parameter capacity: Maximum number of tokens to keep.
+    init(capacity: Int) {
+        self.capacity = capacity
+    }
+
+    /// Appends a key/value pair and evicts the least-recently used entry if needed.
+    /// - Parameters:
+    ///   - key: Key tensor for the token.
+    ///   - value: Value tensor for the token.
+    func append(key: MLShapedArray<Float16>, value: MLShapedArray<Float16>) {
+        keys.append(key)
+        values.append(value)
+        if keys.count > capacity {
+            keys.removeFirst()
+            values.removeFirst()
+        }
     }
 }
 #endif
