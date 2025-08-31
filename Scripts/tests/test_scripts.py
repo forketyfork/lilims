@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import subprocess
+
 from pathlib import Path
 import sys
+import builtins
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -48,3 +52,18 @@ def test_convert_main_pytorch(monkeypatch, tmp_path):
         tmp_path / "out.mlpackage",
         16,
     )
+
+
+def test_convert_pytorch_missing_dep(monkeypatch, tmp_path):
+    import Scripts.convert as convert
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "coremltools":
+            raise ModuleNotFoundError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(SystemExit):
+        convert.convert_pytorch("model", tmp_path / "out.mlpackage", seq_length=8)

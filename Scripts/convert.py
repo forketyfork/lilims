@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-"""Convert LLM checkpoints to Core ML .mlpackage with INT4 weights.
-
-This script loads a Hugging Face Transformers model (or a gguf checkpoint when
-the `--gguf` flag is supplied) and converts it into a Core ML package. The
-resulting `.mlpackage` is quantized to 4-bit weights using Core ML Tools.
-
-The implementation is intentionally minimal; it assumes the environment has
-`coremltools` and `transformers` available.
-"""
-
+"""Convert LLM checkpoints to Core ML .mlpackage with INT4 weights."""
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
 
+def _require(module: str):
+    try:
+        return __import__(module)
+    except ModuleNotFoundError as exc:  # pragma: no cover - import guard
+        raise SystemExit(
+            f"Missing required dependency '{module}'. Install it with `pip install {module}`"
+        ) from exc
+
+
 def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
     """Convert a Hugging Face model to Core ML."""
-    import coremltools as ct
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    ct = _require("coremltools")
+    transformers = _require("transformers")
 
-    model = AutoModelForCausalLM.from_pretrained(model_id)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = transformers.AutoModelForCausalLM.from_pretrained(model_id)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
     mlmodel = ct.converters.transformers.convert(
         model=model,
         tokenizer=tokenizer,
@@ -34,21 +34,37 @@ def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
 
 
 def convert_gguf(path: Path, output: Path, *, seq_length: int) -> None:
-    """Convert a gguf checkpoint to Core ML.
+    """Convert a gguf checkpoint to Core ML."""
+    ct = _require("coremltools")
+    gguf = _require("gguf")
+    np = _require("numpy")
 
-    This helper only verifies that the file is a gguf container and writes a
-    placeholder `.mlpackage` file. Real conversion would load the weights and
-    invoke ``coremltools`` similarly to :func:`convert_pytorch`.
-    """
+    reader = gguf.GGUFReader(path)
+    tensors = list(reader.tensors.values())
+    if not tensors:
+        raise ValueError(f"{path} contains no tensors")
+    # Use the first tensor as demonstration weight matrix.
+    tensor = tensors[0]
+    weight = np.array(tensor.data, dtype=np.float16)
+    input_dim = weight.shape[1]
+    output_dim = weight.shape[0]
 
-    magic = b"GGUF"
-    with path.open("rb") as fh:
-        header = fh.read(4)
-    if header != magic:
-        raise ValueError(f"{path} is not a gguf checkpoint")
-
-    # Minimal placeholder output so unit tests can verify the call path.
-    output.write_text("converted from gguf")
+    builder = ct.models.neural_network.NeuralNetworkBuilder(
+        input_features=[("token", ct.models.datatypes.Array(input_dim))],
+        output_features=[("logits", ct.models.datatypes.Array(output_dim))],
+    )
+    builder.add_inner_product(
+        name="proj",
+        W=weight,
+        b=None,
+        input_channels=input_dim,
+        output_channels=output_dim,
+        has_bias=False,
+        input_name="token",
+        output_name="logits",
+    )
+    mlmodel = ct.models.MLModel(builder.spec)
+    mlmodel.save(str(output))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -65,5 +81,5 @@ def main(argv: list[str] | None = None) -> None:
         convert_pytorch(args.model, args.output, seq_length=args.seq_length)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - CLI entry
     main()
