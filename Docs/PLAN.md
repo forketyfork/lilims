@@ -122,7 +122,7 @@ Cross-cutting concerns:
 - [x] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
 - [x] **Expose `TokenStreamDelegate`** – callback for each generated token.
 - [x] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
-- [ ] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
+- [x] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
 - [ ] **Support backpressure-aware streaming** with `AsyncSequence`
 - [ ] **Handle OOM errors** and surface to callers
 - [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
