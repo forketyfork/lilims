@@ -4,7 +4,12 @@ import XCTest
 
 final class RuntimeCoreMLTests: XCTestCase {
     func testDecodeTinyStories() throws {
-        guard let url = Bundle.module.url(forResource: "tinystories", withExtension: "mlpackage") else {
+        // Skip this test on CI since the model file won't be available
+        if ProcessInfo.processInfo.environment["CI"] != nil {
+            throw XCTSkip("TinyStories model not available on CI")
+        }
+        
+        guard let url = Bundle(for: type(of: self)).url(forResource: "tinystories", withExtension: "mlpackage") else {
             throw XCTSkip("TinyStories model not available")
         }
         let backend = try CoreMLBackend(modelAt: url, maxCacheTokens: 32)

@@ -71,7 +71,7 @@ App
 | Layer | Key decisions | Reality check |
 |-------|---------------|--------------|
 | **Graph execution** | Use Core ML async prediction API | ANE scheduling is opaque - profile but don't expect control |
-| **Custom ops** | Avoid custom ops initially - use only Core ML native ops | MPSGraph custom ops will likely run on GPU, defeating ANE purpose |
+| **Custom ops** | Avoid custom ops initially - use only Core ML native ops | Focus on Core ML native operations for best ANE compatibility |
 | **Memory management** | Start with 8k context, not 32k | Calculate actual memory: (2 * num_layers * seq_len * hidden_dim * 2 bytes) |
 | **Fallback strategy** | Single backend only - Core ML or llama.cpp, not both | Pick one and optimize it properly |
 
@@ -124,7 +124,7 @@ Cross-cutting concerns:
 - [x] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
 - [x] **Expose `TokenStreamDelegate`** – callback for each generated token.
 - [x] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
-- [x] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
+- [x] **Provide rope & rotary table kernels** with pure Swift implementation.
 - [x] **Support backpressure-aware streaming** with `AsyncSequence`
 - [x] **Handle OOM errors** and surface to callers
 - [x] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k instead of relying on a precomputed `token` feature.
