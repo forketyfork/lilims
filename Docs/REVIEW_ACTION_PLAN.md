@@ -30,9 +30,9 @@
 - [x] Add semantic versioning support
 
 ### Task 1.3: Fix GGUF conversion
-- [ ] Parse GGUF model architecture properly
-- [ ] Map GGUF tensors to CoreML layers
-- [ ] Handle different quantization formats (Q4_0, Q4_K, etc.)
+- [x] Parse GGUF model architecture properly
+- [x] Map GGUF tensors to CoreML layers
+- [x] Handle different quantization formats (Q4_0, Q4_K, etc.)
 
 ## Priority 2: Fix Runtime Backend
 
