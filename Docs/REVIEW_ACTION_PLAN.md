@@ -25,9 +25,9 @@
 - [x] Add model architecture detection (GPT-2, Phi-2, Gemma)
 
 ### Task 1.2: Create manifest generator
-- [ ] Implement `Scripts/manifest.py` to generate model metadata
-- [ ] Include model name, size, SHA256, runtime version
-- [ ] Add semantic versioning support
+- [x] Implement `Scripts/manifest.py` to generate model metadata
+- [x] Include model name, size, SHA256, runtime version
+- [x] Add semantic versioning support
 
 ### Task 1.3: Fix GGUF conversion
 - [ ] Parse GGUF model architecture properly
