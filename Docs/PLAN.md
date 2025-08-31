@@ -115,9 +115,9 @@ Cross-cutting concerns:
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
 - [x] **Document conversion workflow** in `Docs/ConversionGuide.md`.
-- [ ] **Finalize `--gguf` conversion** – current script only validates the GGUF header; implement real weight loading and Core ML export.
-- [ ] **Add TinyStories dataset helper** – download and cache the evaluation corpus for `evaluate_perplexity.py`.
-- [ ] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
+- [x] **Finalize `--gguf` conversion** – current script only validates the GGUF header; implement real weight loading and Core ML export.
+- [x] **Add TinyStories dataset helper** – download and cache the evaluation corpus for `evaluate_perplexity.py`.
+- [x] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
 
 
 ### WS-2 RuntimeCoreML tasks
