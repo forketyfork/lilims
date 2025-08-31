@@ -236,7 +236,7 @@ public final class StatefulTransformerModel {
 }
 
 /// KV cache for a single transformer layer.
-private final class LayerKVCache {
+final class LayerKVCache {
     private let maxSequenceLength: Int
     private let numberOfHeads: Int
     private let headDimension: Int
@@ -263,6 +263,9 @@ private final class LayerKVCache {
     }
     
     func update(key: MLMultiArray, value: MLMultiArray, position: Int) {
+        // Ignore writes beyond the allocated cache size
+        guard position < maxSequenceLength else { return }
+
         // Store key and value at the current position
         for headIdx in 0..<numberOfHeads {
             for dimIdx in 0..<headDimension {
