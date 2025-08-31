@@ -15,6 +15,9 @@ public final class CoreMLBackend: @unchecked Sendable {
     private let model: MLModel
     private var state: MLFeatureProvider?
     private var kvCache: KVCache?
+    private var transformerModel: StatefulTransformerModel?
+    private var modelConfig: TransformerConfig?
+    private var modelWeights: TransformerWeights?
     /// Delegate notified as tokens are generated.
     public weak var delegate: TokenStreamDelegate?
 
@@ -29,6 +32,70 @@ public final class CoreMLBackend: @unchecked Sendable {
         if maxCacheTokens > 0 {
             self.kvCache = KVCache(capacity: maxCacheTokens)
         }
+        
+        // Try to load transformer configuration and weights
+        try loadTransformerConfiguration(from: url)
+    }
+    
+    /// Loads transformer configuration and weights from model metadata
+    private func loadTransformerConfiguration(from url: URL) throws {
+        // Look for metadata file next to the model (created by conversion script)
+        let modelDir = url.deletingLastPathComponent()
+        let modelName = url.deletingPathExtension().lastPathComponent
+        let metadataURL = modelDir.appendingPathComponent("\(modelName)_metadata.json")
+        
+        guard FileManager.default.fileExists(atPath: metadataURL.path) else {
+            // No metadata file, fall back to basic CoreML model
+            return
+        }
+        
+        let data = try Data(contentsOf: metadataURL)
+        let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        // Handle both direct config and nested config formats
+        var config: [String: Any]?
+        if let directConfig = metadata as? [String: Any],
+           directConfig["vocab_size"] != nil {
+            // Direct config format (GGUF conversion)
+            config = directConfig
+        } else if let nestedConfig = metadata?["config"] as? [String: Any] {
+            // Nested config format (HF conversion)
+            config = nestedConfig
+        }
+        
+        guard let config = config,
+              let vocabSize = config["vocab_size"] as? Int else {
+            // No valid config found, fall back to basic model
+            return
+        }
+        
+        // Extract parameters with fallbacks for different formats
+        let nEmbd = config["n_embd"] as? Int ?? 
+                   config["hidden_size"] as? Int ?? 
+                   config["d_model"] as? Int ?? 768
+        let nHead = config["n_head"] as? Int ?? 
+                   config["num_attention_heads"] as? Int ?? 12
+        let nLayer = config["n_layer"] as? Int ?? 
+                    config["num_hidden_layers"] as? Int ?? 12
+        let contextLength = config["context_length"] as? Int ?? 
+                           config["max_position_embeddings"] as? Int ?? 
+                           config["sequence_length"] as? Int ?? 2048
+        
+        self.modelConfig = TransformerConfig(
+            vocabSize: vocabSize,
+            maxSequenceLength: contextLength,
+            embeddingDimension: nEmbd,
+            numberOfHeads: nHead,
+            numberOfLayers: nLayer,
+            ropeBase: config["rope_theta"] as? Float ?? 
+                     config["rope_freq_base"] as? Float ?? 10_000
+        )
+        
+        if let config = modelConfig {
+            self.transformerModel = StatefulTransformerModel(config: config)
+            // Note: In a complete implementation, we would load actual weights from the model
+            // For now, this provides the architecture framework
+        }
     }
 
     /// Generates up to `maxTokens` continuations for the given `prompt`.
@@ -39,9 +106,95 @@ public final class CoreMLBackend: @unchecked Sendable {
         temperature: Float = 1.0,
         topK: Int = 0
     ) throws -> [Int32] {
+        // Use stateful transformer if available, otherwise fall back to basic CoreML
+        if let transformer = transformerModel {
+            return try generateWithTransformer(
+                transformer: transformer,
+                prompt: prompt,
+                maxTokens: maxTokens,
+                temperature: temperature,
+                topK: topK
+            )
+        } else {
+            return try generateWithBasicModel(
+                prompt: prompt,
+                maxTokens: maxTokens,
+                temperature: temperature,
+                topK: topK
+            )
+        }
+    }
+    
+    /// Generate tokens using the stateful transformer model
+    private func generateWithTransformer(
+        transformer: StatefulTransformerModel,
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float,
+        topK: Int
+    ) throws -> [Int32] {
+        var tokens = prompt
+        transformer.reset()
+        
+        // Process prompt tokens first (if we had embeddings)
+        // For now, we'll work with the basic CoreML model to get embeddings
+        // In a complete implementation, we would have embedding weights loaded
+        
+        // Generate new tokens
+        for _ in 0..<maxTokens {
+            try Task.checkCancellation()
+            
+            // For now, fall back to basic model since we don't have weight loading implemented
+            // This provides the framework for future enhancement
+            let tokenInput = tokens.last ?? 0
+            var features: [String: MLFeatureValue] = [
+                "token": MLFeatureValue(int64: Int64(tokenInput))
+            ]
+            
+            if let state = state {
+                for name in state.featureNames {
+                    features[name] = state.featureValue(for: name)
+                }
+            } else if let cache = kvCache?.asFeatureProvider() {
+                for name in cache.featureNames {
+                    features[name] = cache.featureValue(for: name)
+                }
+            }
+            
+            let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
+            let output: MLFeatureProvider
+            do {
+                output = try model.prediction(from: combinedInput, options: MLPredictionOptions())
+            } catch {
+                throw mapPredictionError(error)
+            }
+            
+            state = output
+            updateCache(from: output)
+            
+            guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
+                break
+            }
+            
+            let next = sample(from: logits, temperature: temperature, topK: topK)
+            tokens.append(next)
+            delegate?.didGenerate(token: next)
+        }
+        
+        return tokens
+    }
+    
+    /// Generate tokens using the basic CoreML model (fallback)
+    private func generateWithBasicModel(
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float,
+        topK: Int
+    ) throws -> [Int32] {
         var tokens = prompt
         state = nil
         let options = MLPredictionOptions()
+        
         for _ in 0..<maxTokens {
             try Task.checkCancellation()
             var features: [String: MLFeatureValue] = [
@@ -94,46 +247,99 @@ public final class CoreMLBackend: @unchecked Sendable {
         return AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             Task {
                 do {
-                    var tokens = prompt
-                    backend.state = nil
-                    let options = MLPredictionOptions()
-                    for _ in 0..<maxTokens {
-                        try Task.checkCancellation()
-                        var features: [String: MLFeatureValue] = [
-                            "token": MLFeatureValue(int64: Int64(tokens.last ?? 0))
-                        ]
-                        if let state = backend.state {
-                            for name in state.featureNames {
-                                features[name] = state.featureValue(for: name)
-                            }
-                        } else if let cache = backend.kvCache?.asFeatureProvider() {
-                            for name in cache.featureNames {
-                                features[name] = cache.featureValue(for: name)
-                            }
-                        }
-                        let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
-                        let output: MLFeatureProvider
-                        do {
-                            output = try backend.model.prediction(from: combinedInput, options: options)
-                        } catch {
-                            throw mapPredictionError(error)
-                        }
-                        backend.state = output
-                        backend.updateCache(from: output)
-                        guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
-                            break
-                        }
-                        let next = sample(from: logits, temperature: temperature, topK: topK)
-                        tokens.append(next)
-                        backend.delegate?.didGenerate(token: next)
-                        continuation.yield(next)
+                    // Use the same pattern as generate() - transformer if available, otherwise basic model
+                    if let transformer = backend.transformerModel {
+                        try await backend.streamWithTransformer(
+                            transformer: transformer,
+                            prompt: prompt,
+                            maxTokens: maxTokens,
+                            temperature: temperature,
+                            topK: topK,
+                            continuation: continuation
+                        )
+                    } else {
+                        try await backend.streamWithBasicModel(
+                            prompt: prompt,
+                            maxTokens: maxTokens,
+                            temperature: temperature,
+                            topK: topK,
+                            continuation: continuation
+                        )
                     }
-                    continuation.finish()
                 } catch {
                     continuation.finish(throwing: mapPredictionError(error))
                 }
             }
         }
+    }
+    
+    /// Stream tokens using the stateful transformer model
+    private func streamWithTransformer(
+        transformer: StatefulTransformerModel,
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float,
+        topK: Int,
+        continuation: AsyncThrowingStream<Int32, Error>.Continuation
+    ) async throws {
+        var tokens = prompt
+        transformer.reset()
+        
+        // For now, fall back to basic model streaming since we don't have weight loading implemented
+        // This provides the framework for future enhancement
+        try await streamWithBasicModel(
+            prompt: prompt,
+            maxTokens: maxTokens,
+            temperature: temperature,
+            topK: topK,
+            continuation: continuation
+        )
+    }
+    
+    /// Stream tokens using the basic CoreML model (fallback)
+    private func streamWithBasicModel(
+        prompt: [Int32],
+        maxTokens: Int,
+        temperature: Float,
+        topK: Int,
+        continuation: AsyncThrowingStream<Int32, Error>.Continuation
+    ) async throws {
+        var tokens = prompt
+        self.state = nil
+        let options = MLPredictionOptions()
+        
+        for _ in 0..<maxTokens {
+            try Task.checkCancellation()
+            var features: [String: MLFeatureValue] = [
+                "token": MLFeatureValue(int64: Int64(tokens.last ?? 0))
+            ]
+            if let state = self.state {
+                for name in state.featureNames {
+                    features[name] = state.featureValue(for: name)
+                }
+            } else if let cache = self.kvCache?.asFeatureProvider() {
+                for name in cache.featureNames {
+                    features[name] = cache.featureValue(for: name)
+                }
+            }
+            let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
+            let output: MLFeatureProvider
+            do {
+                output = try self.model.prediction(from: combinedInput, options: options)
+            } catch {
+                throw mapPredictionError(error)
+            }
+            self.state = output
+            self.updateCache(from: output)
+            guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
+                break
+            }
+            let next = sample(from: logits, temperature: temperature, topK: topK)
+            tokens.append(next)
+            self.delegate?.didGenerate(token: next)
+            continuation.yield(next)
+        }
+        continuation.finish()
     }
 
     /// Extracts key/value tensors from *output* and stores them in the cache.
