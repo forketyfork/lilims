@@ -20,10 +20,37 @@ The goal is to experiment with on-device LLM inference and benchmarking on Apple
 Python scripts are linted with [Ruff](https://docs.astral.sh/ruff/) and tested using `pytest`.
 
 
-## Python environment
+## Development Environment
 
-The Python helpers use a virtual environment. Create one and install the
-required dependencies:
+### Option 1: Nix + direnv (Recommended)
+
+The project includes a Nix flake that provides a complete, reproducible development environment with all dependencies:
+
+```bash
+# Install Nix (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+
+# Install direnv (if not already installed)
+nix profile install nixpkgs#direnv
+
+# Enable direnv in your shell (add to ~/.bashrc or ~/.zshrc)
+eval "$(direnv hook bash)"  # for bash
+eval "$(direnv hook zsh)"   # for zsh
+
+# Clone and enter the project directory
+cd lilims
+direnv allow
+```
+
+The environment includes:
+- Swift 6.0+ toolchain with swiftformat and swiftlint
+- Python 3.13 with numpy, pytest, and ruff
+- Development utilities: ripgrep (rg), fd, tree, gh
+- Helpful aliases: `test-swift`, `test-python`, `lint-python`, `lint-all`
+
+### Option 2: Python Virtual Environment
+
+Alternatively, you can set up just the Python environment manually:
 
 ```bash
 python3 -m venv .venv
@@ -31,4 +58,4 @@ source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-CI uses the same steps so local runs match the GitHub build.
+**Note:** You'll still need Swift 6.0+ installed separately for this option.
