@@ -180,36 +180,10 @@ public final class StatefulTransformerModel {
         }
         
         // Apply rotation to queries and keys
-        let rotatedQueries = try rotateHalf(queries, sin: sinValues, cos: cosValues)
-        let rotatedKeys = try rotateHalf(keys, sin: sinValues, cos: cosValues)
+        let rotatedQueries = try Rope.rotateHalf(queries, sin: sinValues, cos: cosValues, numberOfHeads: config.numberOfHeads)
+        let rotatedKeys = try Rope.rotateHalf(keys, sin: sinValues, cos: cosValues, numberOfHeads: config.numberOfHeads)
         
         return (rotatedQueries, rotatedKeys)
-    }
-    
-    private func rotateHalf(
-        _ tensor: MLMultiArray,
-        sin: [Float32],
-        cos: [Float32]
-    ) throws -> MLMultiArray {
-        let shape = tensor.shape.map { $0.intValue }
-        let result = try MLMultiArray(shape: tensor.shape, dataType: tensor.dataType)
-        let halfDim = shape.last! / 2
-        
-        // Rotate the tensor using RoPE formulation
-        for headIdx in 0..<config.numberOfHeads {
-            for i in 0..<halfDim {
-                let x1Idx = [NSNumber(value: headIdx), NSNumber(value: i)]
-                let x2Idx = [NSNumber(value: headIdx), NSNumber(value: i + halfDim)]
-                
-                let x1 = tensor[x1Idx].floatValue
-                let x2 = tensor[x2Idx].floatValue
-                
-                result[x1Idx] = NSNumber(value: x1 * cos[i] - x2 * sin[i])
-                result[x2Idx] = NSNumber(value: x1 * sin[i] + x2 * cos[i])
-            }
-        }
-        
-        return result
     }
     
     private func computeAttention(
