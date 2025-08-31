@@ -3,6 +3,12 @@
 import CoreML
 import Foundation
 
+/// Errors that may occur during generation.
+public enum CoreMLBackendError: Error {
+    /// The device ran out of memory while generating tokens.
+    case outOfMemory
+}
+
 /// Backend that runs language models using Core ML stateful evaluation.
 public final class CoreMLBackend {
     private let model: MLModel
@@ -40,7 +46,12 @@ public final class CoreMLBackend {
             } else {
                 combinedInput = input
             }
-            let output = try model.prediction(from: combinedInput, options: options)
+            let output: MLFeatureProvider
+            do {
+                output = try model.prediction(from: combinedInput, options: options)
+            } catch {
+                throw mapPredictionError(error)
+            }
             state = output
             updateCache(from: output)
             guard let next = output.featureValue(for: "token")?.int32Value else {
@@ -77,7 +88,12 @@ public final class CoreMLBackend {
                         } else {
                             combinedInput = input
                         }
-                        let output = try model.prediction(from: combinedInput, options: options)
+                        let output: MLFeatureProvider
+                        do {
+                            output = try model.prediction(from: combinedInput, options: options)
+                        } catch {
+                            throw mapPredictionError(error)
+                        }
                         state = output
                         updateCache(from: output)
                         guard let next = output.featureValue(for: "token")?.int32Value else {
@@ -91,7 +107,7 @@ public final class CoreMLBackend {
                     }
                     continuation.finish()
                 } catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: mapPredictionError(error))
                 }
             }
         }
@@ -107,6 +123,15 @@ public final class CoreMLBackend {
         let value = MLShapedArray<Float16>(valueArray)
         kvCache?.append(key: key, value: value)
     }
+}
+
+/// Converts prediction errors into more specific backend errors.
+private func mapPredictionError(_ error: Error) -> Error {
+    let nsError = error as NSError
+    if nsError.domain == NSPOSIXErrorDomain && nsError.code == Int(POSIXErrorCode.ENOMEM.rawValue) {
+        return CoreMLBackendError.outOfMemory
+    }
+    return error
 }
 
 private extension MLDictionaryFeatureProvider {

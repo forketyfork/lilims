@@ -124,7 +124,7 @@ Cross-cutting concerns:
 - [x] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
 - [x] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
 - [x] **Support backpressure-aware streaming** with `AsyncSequence`
-- [ ] **Handle OOM errors** and surface to callers
+- [x] **Handle OOM errors** and surface to callers
 - [ ] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
 
 ### WS-3 ContextWindow tasks
