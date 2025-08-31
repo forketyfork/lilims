@@ -1,6 +1,8 @@
 ## Conversion workflow
 
-This guide explains how to convert a Hugging Face model or gguf checkpoint into a Core ML `.mlpackage` with INT4 weights. The Python scripts live under the `Scripts` directory and require Python 3.13.
+This guide explains how to convert a Hugging Face model or GGUF checkpoint into a Core ML `.mlpackage` with INT4 weights.
+
+**Current Status**: The conversion pipeline is fully implemented with support for GPT-2, Phi-2, and Gemma architectures using the ML Program format with stateful models. The Python scripts live under the `Scripts` directory and require Python 3.13.
 
 Before running any script, create a virtual environment and install the
 dependencies listed in `requirements.txt`:
@@ -20,8 +22,9 @@ python Scripts/convert.py gpt2 ~/Models/gpt2.mlpackage --seq-length 512
 ```
 
 By default the script expects a Hugging Face model identifier. Pass `--gguf`
-to convert a local gguf file instead. The script uses `coremltools` to
-quantize the weights to 4‑bit integers.
+to convert a local GGUF file instead. The script uses `coremltools` ML Program
+format to create stateful models with INT4 quantized weights for optimal
+performance on Apple Neural Engine.
 
 ### 2. Generate `manifest.json`
 

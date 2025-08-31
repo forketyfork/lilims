@@ -131,6 +131,8 @@ Cross-cutting concerns:
 - [x] **Feed KV cache back into model inputs** so past context is reused across calls.
 - [x] **Add cancellation support** for long‑running generation.
 - [x] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
+- [x] **Implement StatefulTransformerModel** – complete transformer architecture with multi-head attention.
+- [x] **Add comprehensive test suites** – TransformerConfig, StatefulTransformerModel, and RoPE tests all passing.
 
 ### WS-3 ContextWindow tasks
 - [ ] **Implement sliding window attention**
