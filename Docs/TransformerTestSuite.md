@@ -6,42 +6,42 @@ This document outlines a comprehensive test suite for the stateful transformer m
 ## 1. Configuration Tests
 
 ### TransformerConfig
-- [ ] Test valid configuration initialization with all parameters
-- [ ] Test default parameter values (ropeBase defaults to 10,000)
-- [ ] Test headDimension calculation (embeddingDimension / numberOfHeads)
-- [ ] Test edge cases for embedding dimensions (odd numbers, very small values)
-- [ ] Test configuration with various vocab sizes (small, medium, large)
-- [ ] Test maximum sequence length boundaries
-- [ ] Test configuration validation for incompatible dimensions
-- [ ] Test configuration copy/equality operations
+- [x] Test valid configuration initialization with all parameters
+- [x] Test default parameter values (ropeBase defaults to 10,000)
+- [x] Test headDimension calculation (embeddingDimension / numberOfHeads)
+- [x] Test edge cases for embedding dimensions (odd numbers, very small values)
+- [x] Test configuration with various vocab sizes (small, medium, large)
+- [x] Test maximum sequence length boundaries
+- [x] Test configuration validation for incompatible dimensions
+- [x] Test configuration copy/equality operations
 
 ## 2. StatefulTransformerModel Tests
 
 ### Initialization
-- [ ] Test model initialization with minimal configuration
-- [ ] Test model initialization with maximum configuration values
-- [ ] Test memory allocation for KV cache arrays
-- [ ] Test initialization with various layer counts (1, 6, 12, 24)
-- [ ] Test initialization with different head counts (1, 4, 8, 16, 32)
-- [ ] Test initialization failure with invalid configurations
+- [x] Test model initialization with minimal configuration
+- [x] Test model initialization with maximum configuration values
+- [x] Test memory allocation for KV cache arrays
+- [x] Test initialization with various layer counts (1, 6, 12, 24)
+- [x] Test initialization with different head counts (1, 4, 8, 16, 32)
+- [x] Test initialization failure with invalid configurations
 
 ### State Management
-- [ ] Test reset() clears all KV caches properly
-- [ ] Test reset() resets current position to 0
-- [ ] Test multiple consecutive resets are safe
-- [ ] Test state persistence across forward passes
-- [ ] Test currentPosition increments correctly after each forward pass
-- [ ] Test KV cache state after processing multiple tokens
+- [x] Test reset() clears all KV caches properly
+- [x] Test reset() resets current position to 0
+- [x] Test multiple consecutive resets are safe
+- [x] Test state persistence across forward passes
+- [x] Test currentPosition increments correctly after each forward pass
+- [x] Test KV cache state after processing multiple tokens
 
 ### Forward Pass
-- [ ] Test forward pass with single token embedding
-- [ ] Test forward pass output shapes (logits, keyCache, valueCache)
-- [ ] Test forward pass with different sequence positions
-- [ ] Test forward pass preserves data types (float16)
-- [ ] Test forward pass with edge case embedding dimensions
-- [ ] Test sequential forward passes maintain state correctly
-- [ ] Test forward pass at maximum sequence length
-- [ ] Test forward pass behavior when exceeding max sequence length
+- [x] Test forward pass with single token embedding
+- [x] Test forward pass output shapes (logits, keyCache, valueCache)
+- [x] Test forward pass with different sequence positions
+- [x] Test forward pass preserves data types (float16)
+- [x] Test forward pass with edge case embedding dimensions
+- [x] Test sequential forward passes maintain state correctly
+- [x] Test forward pass at maximum sequence length
+- [x] Test forward pass behavior when exceeding max sequence length
 
 ## 3. Rotary Position Embeddings (RoPE)
 
