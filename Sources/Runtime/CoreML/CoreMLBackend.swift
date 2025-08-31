@@ -52,6 +52,51 @@ public final class CoreMLBackend {
         return tokens
     }
 
+    /// Streams tokens for the given `prompt`.
+    ///
+    /// Backpressure is enforced by buffering only a single token at a time. If
+    /// the consumer is slow, generation pauses until the token is consumed.
+    /// - Parameters:
+    ///   - prompt: Prefix tokens to seed generation.
+    ///   - maxTokens: Maximum number of tokens to produce.
+    /// - Returns: Async sequence yielding tokens as they are generated.
+    public func stream(prompt: [Int32], maxTokens: Int) -> AsyncThrowingStream<Int32, Error> {
+        AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            Task {
+                do {
+                    var tokens = prompt
+                    let options = MLPredictionOptions()
+                    options.usesCPUOnly = false
+                    for _ in 0..<maxTokens {
+                        let input = try MLDictionaryFeatureProvider(dictionary: [
+                            "token": MLFeatureValue(int32: tokens.last ?? 0)
+                        ])
+                        let combinedInput: MLFeatureProvider
+                        if let state = state {
+                            combinedInput = try MLDictionaryFeatureProvider(from: input, merging: state)
+                        } else {
+                            combinedInput = input
+                        }
+                        let output = try model.prediction(from: combinedInput, options: options)
+                        state = output
+                        updateCache(from: output)
+                        guard let next = output.featureValue(for: "token")?.int32Value else {
+                            break
+                        }
+                        tokens.append(next)
+                        delegate?.didGenerate(token: next)
+                        while continuation.yield(next) == .dropped {
+                            await Task.yield()
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
     /// Extracts key/value tensors from *output* and stores them in the cache.
     private func updateCache(from output: MLFeatureProvider) {
         guard let keyArray = output.featureValue(for: "key")?.multiArrayValue,
