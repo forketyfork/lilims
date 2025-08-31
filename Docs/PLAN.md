@@ -120,7 +120,7 @@ Cross-cutting concerns:
 
 ### WS-2 RuntimeCoreML tasks
 - [x] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
-- [ ] **Expose `TokenStreamDelegate`** – callback for each generated token.
+- [x] **Expose `TokenStreamDelegate`** – callback for each generated token.
 - [ ] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
 - [ ] **Provide rope & rotary table kernels** via `MPSGraph` fallback.
 - [ ] **Support backpressure-aware streaming** with `AsyncSequence`
