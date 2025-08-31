@@ -10,7 +10,8 @@ public enum CoreMLBackendError: Error {
 }
 
 /// Backend that runs language models using Core ML stateful evaluation.
-public final class CoreMLBackend {
+@available(iOS 15.0, macOS 12.0, *)
+public final class CoreMLBackend: @unchecked Sendable {
     private let model: MLModel
     private var state: MLFeatureProvider?
     private var kvCache: KVCache?
@@ -41,11 +42,10 @@ public final class CoreMLBackend {
         var tokens = prompt
         state = nil
         let options = MLPredictionOptions()
-        options.usesCPUOnly = false
         for _ in 0..<maxTokens {
             try Task.checkCancellation()
             var features: [String: MLFeatureValue] = [
-                "token": MLFeatureValue(int32: tokens.last ?? 0)
+                "token": MLFeatureValue(int64: Int64(tokens.last ?? 0))
             ]
             if let state = state {
                 for name in state.featureNames {
@@ -83,29 +83,30 @@ public final class CoreMLBackend {
     ///   - prompt: Prefix tokens to seed generation.
     ///   - maxTokens: Maximum number of tokens to produce.
     /// - Returns: Async sequence yielding tokens as they are generated.
+    @available(iOS 15.0, macOS 12.0, *)
     public func stream(
         prompt: [Int32],
         maxTokens: Int,
         temperature: Float = 1.0,
         topK: Int = 0
     ) -> AsyncThrowingStream<Int32, Error> {
-        AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+        let backend = self
+        return AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             Task {
                 do {
                     var tokens = prompt
-                    state = nil
+                    backend.state = nil
                     let options = MLPredictionOptions()
-                    options.usesCPUOnly = false
                     for _ in 0..<maxTokens {
                         try Task.checkCancellation()
                         var features: [String: MLFeatureValue] = [
-                            "token": MLFeatureValue(int32: tokens.last ?? 0)
+                            "token": MLFeatureValue(int64: Int64(tokens.last ?? 0))
                         ]
-                        if let state = state {
+                        if let state = backend.state {
                             for name in state.featureNames {
                                 features[name] = state.featureValue(for: name)
                             }
-                        } else if let cache = kvCache?.asFeatureProvider() {
+                        } else if let cache = backend.kvCache?.asFeatureProvider() {
                             for name in cache.featureNames {
                                 features[name] = cache.featureValue(for: name)
                             }
@@ -113,22 +114,19 @@ public final class CoreMLBackend {
                         let combinedInput = try MLDictionaryFeatureProvider(dictionary: features)
                         let output: MLFeatureProvider
                         do {
-                            output = try model.prediction(from: combinedInput, options: options)
+                            output = try backend.model.prediction(from: combinedInput, options: options)
                         } catch {
                             throw mapPredictionError(error)
                         }
-                        state = output
-                        updateCache(from: output)
+                        backend.state = output
+                        backend.updateCache(from: output)
                         guard let logits = output.featureValue(for: "logits")?.multiArrayValue else {
                             break
                         }
                         let next = sample(from: logits, temperature: temperature, topK: topK)
                         tokens.append(next)
-                        delegate?.didGenerate(token: next)
-                        while continuation.yield(next) == .dropped {
-                            try Task.checkCancellation()
-                            await Task.yield()
-                        }
+                        backend.delegate?.didGenerate(token: next)
+                        continuation.yield(next)
                     }
                     continuation.finish()
                 } catch {
@@ -206,6 +204,7 @@ private final class KVCache {
 }
 
 /// Sample a token index from *logits* using temperature and top-k filtering.
+@available(iOS 15.0, macOS 12.0, *)
 private func sample(
     from logits: MLMultiArray,
     temperature: Float,

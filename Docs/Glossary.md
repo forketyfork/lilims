@@ -6,7 +6,6 @@
 |------|---------|---------------|
 | **Apple Neural Engine (ANE)** | Dedicated ML accelerator in Apple Silicon, optimized for convolutions and some transformer ops. Core ML *may* use it based on operator compatibility and heuristics. | Can provide 1.5-3× speedup over GPU for compatible ops, but you cannot force or guarantee ANE usage. |
 | **Core ML Compute Units (`MLComputeUnits`)** | An enum that tells Core ML which hardware blocks (CPU, GPU, ANE, or *all*) it may use at runtime. | Your code sets `.all` in production, but CI can force `.cpuOnly` to catch hidden device‑specific bugs. |
-| **MPSGraph** | Metal Performance Shaders Graph API for GPU compute. Provides graph optimizations but runs exclusively on GPU. | Use for custom ops that Core ML doesn't support natively. Will not use ANE. |
 | **Unified Memory** | Apple Silicon's shared RAM between CPU/GPU/ANE. No PCIe copies needed. | Why iOS can run larger models than equivalent PC RAM would suggest, but still has hard limits. |
 
 ### Model formats & tooling

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Lilims",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v17), .macOS(.v12)],
     products: [
         .library(name: "Lilims", targets: ["Lilims"]),
         .executable(name: "LilimsApp", targets: ["LilimsApp"])
