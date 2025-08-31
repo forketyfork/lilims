@@ -134,9 +134,12 @@ Cross-cutting concerns:
 
 
 
+### WS-10 CI/CD tasks
+- [x] **Fix iOS build workflow** – switch to `xcodebuild build` to avoid missing test action.
+
 ---
 
-## 7. Performance & profiling  
+## 7. Performance & profiling
 
 * Use **Xcode Instruments → Core ML report** to verify operator placement.  [oai_citation:26‡Apple Developer](https://developer.apple.com/machine-learning/core-ml/?utm_source=chatgpt.com)  
 * Compare ANE vs GPU paths with the *neural‑engine* community benchmarks.  [oai_citation:27‡GitHub](https://github.com/hollance/neural-engine/blob/master/docs/ane-vs-gpu.md?utm_source=chatgpt.com)  

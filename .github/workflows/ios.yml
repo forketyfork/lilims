@@ -12,6 +12,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
-      - name: Build and test
+      - name: Build
         run: |
-          xcodebuild -scheme LilimsApp -destination 'generic/platform=iOS Simulator' test
+          xcodebuild -scheme LilimsApp -destination 'generic/platform=iOS Simulator' build
