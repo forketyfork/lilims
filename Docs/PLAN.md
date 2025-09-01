@@ -127,6 +127,7 @@ Cross-cutting concerns:
 - [x] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
 - [ ] Current implementation of `convert.py` uses non-existent CoreML APIs. Need proper PyTorch→CoreML conversion. 
       Refer to https://apple.github.io/coremltools/docs-guides/source/convert-pytorch-workflow.html. Use `torch.jit.trace`.
+      Current conversion fails with error `ERROR - Conversion failed: module 'coremltools' has no attribute 'int32'`
 - [ ] `Docs/ConversionGuide.md` needs update after fixing conversion.
 - [ ] **NEW: Validate ANE compatibility** – Ensure ops are ANE-eligible for hardware acceleration.
 

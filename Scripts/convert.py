@@ -56,7 +56,7 @@ def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
 
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
         device_map="cpu"
     )
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
