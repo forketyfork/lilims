@@ -20,10 +20,6 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            # macOS development tools
-          ] ++ lib.optionals stdenv.isDarwin [
-            # macOS development tools available when on Darwin
-          ] ++ [
             # Python development
             pythonEnv
             ruff
@@ -40,6 +36,9 @@
             
             # GitHub CLI
             gh
+            
+            # Just command runner
+            just
           ];
 
           shellHook = ''
@@ -49,25 +48,15 @@
             echo "Python version: $(python --version)"
             echo "Ruff version: $(ruff --version)"
             
-            # Swift package manager cache
-            export SWIFTPM_CACHE_DIR="$PWD/.build/cache"
             
-            # Helpful aliases (using system Swift)
-            alias test-swift="swift test"
-            alias test-python="pytest Scripts/tests"
-            alias lint-python="ruff check Scripts"
-            alias lint-all="ruff check Scripts && swift test"
-            
-            echo "📋 Available commands:"
-            echo "  test-swift     - Run Swift tests"
-            echo "  test-python    - Run Python tests" 
-            echo "  lint-python    - Lint Python code"
-            echo "  lint-all       - Run all linting and tests"
+            echo "📋 Available commands (via just):"
+            echo "  just clean     - Clean build artifacts"
+            echo "  just build     - Build the project"
+            echo "  just test      - Run all tests (Swift and Python)"
+            echo "  just lint      - Run linting (Python and Swift tests)"
           '';
 
-          # Environment variables
-          NIX_ENFORCE_PURITY = 0; # Allow impure operations needed for Swift/Xcode
-        };
+       };
 
         # Formatter for nix files
         formatter = pkgs.nixpkgs-fmt;

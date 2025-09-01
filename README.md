@@ -45,8 +45,8 @@ direnv allow
 The environment includes:
 - Swift 6.0+ toolchain with swiftformat and swiftlint
 - Python 3.13 with numpy, pytest, and ruff
-- Development utilities: ripgrep (rg), fd, tree, gh
-- Helpful aliases: `test-swift`, `test-python`, `lint-python`, `lint-all`
+- Development utilities: ripgrep (rg), fd, tree, gh, just
+- Common development tasks via `just` command runner
 
 ### Option 2: Python Virtual Environment
 
@@ -59,3 +59,14 @@ pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 **Note:** You'll still need Swift 6.0+ installed separately for this option.
+
+## Common Tasks
+
+The project uses [`just`](https://github.com/casey/just) as a command runner for common development tasks:
+
+```bash
+just clean    # Clean build artifacts
+just build    # Build the project  
+just test     # Run all tests (Swift and Python)
+just lint     # Run linting (Python and Swift tests)
+```
