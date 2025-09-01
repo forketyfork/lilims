@@ -8,6 +8,8 @@ clean:
     swift package clean
     find . -name "*.pyc" -delete
     find . -name "__pycache__" -type d -exec rm -rf {} + || true
+    rm -rf .pytest_cache
+    rm -rf .ruff_cache
 
 # Build the project
 build:

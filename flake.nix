@@ -39,10 +39,25 @@
             
             # Just command runner
             just
+            
+            # Latest macOS SDK
+            apple-sdk_15
+            
+            # Swift from Nix (consistent with SDK)
+            swift
           ];
 
           shellHook = ''
+            # Override SDK to use latest version
+            export DEVELOPER_DIR=${pkgs.apple-sdk_15}
+            export SDKROOT=${pkgs.apple-sdk_15}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+            
+            # Prioritize Nix Swift over system Swift
+            export PATH=${pkgs.swift}/bin:$PATH
+            
             echo "🚀 Lilims development environment"
+            echo "📱 Using macOS SDK: $(basename $DEVELOPER_DIR)"
+            echo "🔧 Using Swift from: $(which swift)"
             
             echo "Swift version: $(swift --version | head -n1)"
             echo "Python version: $(python --version)"
