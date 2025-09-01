@@ -249,7 +249,7 @@ extension TransformerConfigTests {
         )
         
         // Copy the configuration
-        var copiedConfig = originalConfig
+        let copiedConfig = originalConfig
         
         // Verify all properties are copied correctly
         XCTAssertEqual(originalConfig.vocabSize, copiedConfig.vocabSize)

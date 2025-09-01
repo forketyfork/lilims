@@ -22,13 +22,14 @@ As of 2024-08-31, significant progress has been made on the Lilims transformer i
 - **TokenStreamDelegate**: Async streaming support for token generation
 
 ### Testing Infrastructure
-- **Swift Tests**: 6 comprehensive test suites, all passing
+- **Swift Tests**: 7 comprehensive test suites, all passing
   - TransformerConfigTests
   - StatefulTransformerModelTests
   - RopeTests (with performance benchmarks)
   - SimplifiedTransformerTests
   - RuntimeCoreMLTests
   - General LilimsTests
+  - KVCacheTests
 - **Python Scripts**: Conversion and evaluation tools implemented
 - **Performance Tests**: RoPE generation benchmarks included
 

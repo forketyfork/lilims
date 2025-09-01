@@ -24,7 +24,11 @@ Python scripts are linted with [Ruff](https://docs.astral.sh/ruff/) and tested u
 
 ### Option 1: Nix + direnv (Recommended)
 
-The project includes a Nix flake that provides a complete, reproducible development environment with all dependencies:
+The project includes a Nix flake that provides a reproducible development environment with Python dependencies and development utilities. **Note:** This setup uses your system Swift toolchain and Xcode instead of Nix-provided Swift packages to ensure compatibility with Swift 6.0 and modern macOS SDKs.
+
+**Prerequisites:**
+- Xcode installed and properly configured (`xcode-select --install`)
+- System Swift 6.0+ available
 
 ```bash
 # Install Nix (if not already installed)
@@ -42,11 +46,11 @@ cd lilims
 direnv allow
 ```
 
-The environment includes:
-- Swift 6.0+ toolchain with swiftformat and swiftlint
+The Nix environment provides:
 - Python 3.13 with numpy, pytest, and ruff
-- Development utilities: ripgrep (rg), fd, tree, gh
-- Helpful aliases: `test-swift`, `test-python`, `lint-python`, `lint-all`
+- Development utilities: ripgrep (rg), fd, tree, gh, just
+- System Swift toolchain integration (uses your installed Xcode/Swift)
+- Common development tasks via `just` command runner
 
 ### Option 2: Python Virtual Environment
 
@@ -59,3 +63,14 @@ pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 **Note:** You'll still need Swift 6.0+ installed separately for this option.
+
+## Common Tasks
+
+The project uses [`just`](https://github.com/casey/just) as a command runner for common development tasks:
+
+```bash
+just clean    # Clean build artifacts
+just build    # Build the project using system Swift
+just test     # Run all tests (Swift via system toolchain + Python)
+just lint     # Run linting (Python via ruff + Swift tests)
+```

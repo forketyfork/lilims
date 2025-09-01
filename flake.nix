@@ -20,15 +20,6 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            # Swift development
-            swift
-            swiftformat
-            swiftlint
-            
-            # Apple development tools (macOS only)
-          ] ++ lib.optionals stdenv.isDarwin [
-            # macOS development tools available when on Darwin
-          ] ++ [
             # Python development
             pythonEnv
             ruff
@@ -45,33 +36,39 @@
             
             # GitHub CLI
             gh
+            
+            # Just command runner
+            just
+            
+            # Use system Swift - removed Nix swift/swiftpm due to version compatibility issues
+            # Swift 5.8 from Nix is incompatible with newer macOS SDK features
           ];
 
           shellHook = ''
+            # Use system Xcode instead of Nix SDK
+            unset DEVELOPER_DIR SDKROOT
+            
+            # Put system binaries first in PATH to override Nix Swift
+            export PATH="/usr/bin:$PATH"
+            
             echo "🚀 Lilims development environment"
-            echo "Swift version: $(swift --version | head -n1)"
+            echo "🔧 Using system Xcode from: $(xcode-select -p 2>/dev/null || echo 'Xcode not found')"
+            echo "🔧 Using system Swift from: $(which swift 2>/dev/null || echo 'Swift not found')"
+            
+            if command -v swift >/dev/null 2>&1; then
+              echo "Swift version: $(swift --version | head -n1)"
+            fi
             echo "Python version: $(python --version)"
             echo "Ruff version: $(ruff --version)"
             
-            # Swift package manager cache
-            export SWIFTPM_CACHE_DIR="$PWD/.build/cache"
-            
-            # Helpful aliases
-            alias test-swift="swift test"
-            alias test-python="pytest Scripts/tests"
-            alias lint-python="ruff check Scripts"
-            alias lint-all="ruff check Scripts && swift test"
-            
-            echo "📋 Available commands:"
-            echo "  test-swift     - Run Swift tests"
-            echo "  test-python    - Run Python tests" 
-            echo "  lint-python    - Lint Python code"
-            echo "  lint-all       - Run all linting and tests"
+            echo "📋 Available commands (via just):"
+            echo "  just clean     - Clean build artifacts"
+            echo "  just build     - Build the project (using xcodebuild)"
+            echo "  just test      - Run all tests (using xcodebuild + Python)"
+            echo "  just lint      - Run linting (Python and Swift tests)"
           '';
 
-          # Environment variables
-          NIX_ENFORCE_PURITY = 0; # Allow impure operations needed for Swift/Xcode
-        };
+       };
 
         # Formatter for nix files
         formatter = pkgs.nixpkgs-fmt;

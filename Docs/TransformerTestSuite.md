@@ -93,19 +93,19 @@ This document outlines a comprehensive test suite for the stateful transformer m
 ## 5. KV Cache Management
 
 ### LayerKVCache
-- [ ] Test cache initialization with correct shapes
-- [ ] Test cache update at specific positions
-- [ ] Test cache retrieval up to current position
-- [ ] Test cache reset functionality
-- [ ] Test cache memory clearing
-- [ ] Test cache overflow handling
-- [ ] Test cache slicing operations
-- [ ] Test concurrent cache updates
+- [x] Test cache initialization with correct shapes
+- [x] Test cache update at specific positions
+- [x] Test cache retrieval up to current position
+- [x] Test cache reset functionality
+- [x] Test cache memory clearing
+- [x] Test cache overflow handling
+- [x] Test cache slicing operations
+- [x] Test concurrent cache updates
 
 ### Multi-Layer Cache
-- [ ] Test cache concatenation across layers
-- [ ] Test independent layer cache management
-- [ ] Test cache state after model reset
+- [x] Test cache concatenation across layers
+- [x] Test independent layer cache management
+- [x] Test cache state after model reset
 - [ ] Test cache memory usage scaling
 
 ## 6. MLP Block
