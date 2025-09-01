@@ -54,7 +54,7 @@ public final class CoreMLBackend: @unchecked Sendable {
         
         // Handle both direct config and nested config formats
         var config: [String: Any]?
-        if let directConfig = metadata as? [String: Any],
+        if let directConfig = metadata,
            directConfig["vocab_size"] != nil {
             // Direct config format (GGUF conversion)
             config = directConfig
@@ -282,7 +282,7 @@ public final class CoreMLBackend: @unchecked Sendable {
         topK: Int,
         continuation: AsyncThrowingStream<Int32, Error>.Continuation
     ) async throws {
-        var tokens = prompt
+        _ = prompt
         transformer.reset()
         
         // For now, fall back to basic model streaming since we don't have weight loading implemented
