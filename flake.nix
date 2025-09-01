@@ -39,10 +39,8 @@
             
             # Just command runner
             just
-            
-            # Use system Swift - removed Nix swift/swiftpm due to version compatibility issues
-            # Swift 5.8 from Nix is incompatible with newer macOS SDK features
-          ];
+           
+           ];
 
           shellHook = ''
             # Use system Xcode instead of Nix SDK
