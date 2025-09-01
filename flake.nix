@@ -40,34 +40,31 @@
             # Just command runner
             just
             
-            # Latest macOS SDK
-            apple-sdk_15
-            
-            # Swift from Nix (consistent with SDK)
-            swift
+            # Use system Swift - removed Nix swift/swiftpm due to version compatibility issues
+            # Swift 5.8 from Nix is incompatible with newer macOS SDK features
           ];
 
           shellHook = ''
-            # Override SDK to use latest version
-            export DEVELOPER_DIR=${pkgs.apple-sdk_15}
-            export SDKROOT=${pkgs.apple-sdk_15}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+            # Use system Xcode instead of Nix SDK
+            unset DEVELOPER_DIR SDKROOT
             
-            # Prioritize Nix Swift over system Swift
-            export PATH=${pkgs.swift}/bin:$PATH
+            # Put system binaries first in PATH to override Nix Swift
+            export PATH="/usr/bin:$PATH"
             
             echo "🚀 Lilims development environment"
-            echo "📱 Using macOS SDK: $(basename $DEVELOPER_DIR)"
-            echo "🔧 Using Swift from: $(which swift)"
+            echo "🔧 Using system Xcode from: $(xcode-select -p 2>/dev/null || echo 'Xcode not found')"
+            echo "🔧 Using system Swift from: $(which swift 2>/dev/null || echo 'Swift not found')"
             
-            echo "Swift version: $(swift --version | head -n1)"
+            if command -v swift >/dev/null 2>&1; then
+              echo "Swift version: $(swift --version | head -n1)"
+            fi
             echo "Python version: $(python --version)"
             echo "Ruff version: $(ruff --version)"
             
-            
             echo "📋 Available commands (via just):"
             echo "  just clean     - Clean build artifacts"
-            echo "  just build     - Build the project"
-            echo "  just test      - Run all tests (Swift and Python)"
+            echo "  just build     - Build the project (using xcodebuild)"
+            echo "  just test      - Run all tests (using xcodebuild + Python)"
             echo "  just lint      - Run linting (Python and Swift tests)"
           '';
 

@@ -1,5 +1,6 @@
 # Lilims justfile
 # Common development tasks for the Lilims project
+# Uses system Swift/Xcode toolchain via Nix environment
 
 # Clean build artifacts
 clean:
@@ -11,16 +12,16 @@ clean:
     rm -rf .pytest_cache
     rm -rf .ruff_cache
 
-# Build the project
+# Build the project using system Swift
 build:
     swift build
 
-# Run all tests (Swift and Python)
+# Run all tests (Swift via system toolchain + Python)
 test:
     swift test
     pytest Scripts/tests
 
-# Run linting (Swift and Python)
+# Run linting (Python via ruff + Swift tests)
 lint:
     ruff check Scripts
     swift test

@@ -11,11 +11,13 @@ The documentation to the project is located in the `Docs` directory:
 
 This project uses Nix + direnv for a reproducible development environment. The environment will be automatically loaded when you enter the directory if direnv is installed and allowed.
 
+**Important:** This setup uses the system Swift toolchain and Xcode instead of Nix-provided Swift packages due to compatibility requirements with Swift 6.0 and modern macOS SDKs. Ensure you have Xcode installed and properly configured with `xcode-select`.
+
 Available commands in the development environment:
 - `just clean` — Clean build artifacts
-- `just build` — Build the project
-- `just test` — Run all tests (Swift and Python)
-- `just lint` — Run linting (Python and Swift tests)
+- `just build` — Build the project using system Swift
+- `just test` — Run all tests (Swift via system toolchain + Python)
+- `just lint` — Run linting (Python via ruff + Swift tests)
 - Helpful tools: `rg` (ripgrep), `fd`, `tree`, `gh`, `just`
 
 If the environment isn't automatically loaded, you can manually enter it with:
