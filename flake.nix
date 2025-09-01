@@ -10,18 +10,17 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        
-        # Python environment with project dependencies
-        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          numpy
-          pytest
-        ]);
-
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
+            # Python 3.12 (for coremltools compatibility) with all required packages, except for coremltools
+            (python312.withPackages (ps: [
+              ps.pip
+              ps.pytest
+              ps.numpy
+            ]))
+
             # Python development
-            pythonEnv
             ruff
             
             # Development utilities
@@ -43,12 +42,18 @@
            ];
 
           shellHook = ''
+            # Install coremltools via pip, as they are not available in python312Packages
+            export VENV_DIR="$(pwd)/.venv"
+            python -m venv "$VENV_DIR"
+            source "$VENV_DIR/bin/activate"
+            pip install -r requirements.txt
+
             # Use system Xcode instead of Nix SDK
             unset DEVELOPER_DIR SDKROOT
             
             # Put system binaries first in PATH to override Nix Swift
             export PATH="/usr/bin:$PATH"
-            
+
             echo "🚀 Lilims development environment"
             echo "🔧 Using system Xcode from: $(xcode-select -p 2>/dev/null || echo 'Xcode not found')"
             echo "🔧 Using system Swift from: $(which swift 2>/dev/null || echo 'Swift not found')"

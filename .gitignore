@@ -89,3 +89,6 @@ result-*
 # Other
 .DS_Store
 .venv/
+
+# IntelliJ IDEA
+.idea

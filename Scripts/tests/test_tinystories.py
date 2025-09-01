@@ -14,7 +14,8 @@ def test_ensure_dataset_download(monkeypatch, tmp_path):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-        def read(self):
+        @staticmethod
+        def read():
             return data
 
     monkeypatch.setattr(urllib.request, "urlopen", lambda url: FakeResponse())
@@ -24,7 +25,7 @@ def test_ensure_dataset_download(monkeypatch, tmp_path):
 
     called: dict[str, object] = {}
 
-    def fake_urlopen(url):
+    def fake_urlopen():
         called["called"] = True
         return FakeResponse()
 
