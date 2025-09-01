@@ -28,6 +28,16 @@ final class KVCacheTests: XCTestCase {
         let ptr = array.dataPointer.bindMemory(to: Float16.self, capacity: array.count)
         return Float(ptr[index])
     }
+    
+    private func copyArray(_ source: MLMultiArray) -> MLMultiArray {
+        let copy = try! MLMultiArray(shape: source.shape, dataType: source.dataType)
+        let sourcePtr = source.dataPointer.bindMemory(to: Float16.self, capacity: source.count)
+        let copyPtr = copy.dataPointer.bindMemory(to: Float16.self, capacity: copy.count)
+        for i in 0..<source.count {
+            copyPtr[i] = sourcePtr[i]
+        }
+        return copy
+    }
 
     // MARK: - LayerKVCache Tests
 
@@ -109,7 +119,7 @@ final class KVCacheTests: XCTestCase {
         let cache = LayerKVCache(maxSequenceLength: 2, numberOfHeads: 1, headDimension: 1)
         let valid = makeArray(shape: [1, 1], start: 1)
         cache.update(key: valid, value: valid, position: 0)
-        let snapshot = cache.getCurrentKeyCache().copy() as! MLMultiArray
+        let snapshot = copyArray(cache.getCurrentKeyCache())
 
         // Attempt to write beyond max sequence length
         cache.update(key: valid, value: valid, position: 5)

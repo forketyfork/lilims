@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import json
 import re
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 
@@ -44,7 +44,7 @@ def generate_manifest(
         "size": size,
         "sha256": digest,
         "runtime_version": runtime_version,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(UTC).isoformat() + "Z",
     }
     
     # Add optional fields if provided
