@@ -13,8 +13,15 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            # Python 3.12 (for coremltools compatibility)
-            python312
+            # Python 3.12 (for coremltools compatibility) with all required packages
+            (python312.withPackages (ps: [
+              ps.pip
+              ps.numpy
+              ps.pytest
+              ps.torch
+              ps.transformers
+              ps.accelerate
+            ]))
 
             # Python development
             ruff
@@ -38,6 +45,12 @@
            ];
 
           shellHook = ''
+            # Install coremltools via pip, as they are not available in python312Packages
+            export VENV_DIR="$(pwd)/.venv"
+            python -m venv "$VENV_DIR"
+            source "$VENV_DIR/bin/activate"
+            pip install -r requirements.txt
+
             # Use system Xcode instead of Nix SDK
             unset DEVELOPER_DIR SDKROOT
             
