@@ -17,6 +17,7 @@
             (python312.withPackages (ps: [
               ps.pip
               ps.pytest
+              ps.numpy
             ]))
 
             # Python development
