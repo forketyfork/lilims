@@ -10,18 +10,13 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        
-        # Python environment with project dependencies
-        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          numpy
-          pytest
-        ]);
-
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
+            # Python 3.12 (for coremltools compatibility)
+            python312
+
             # Python development
-            pythonEnv
             ruff
             
             # Development utilities
@@ -48,7 +43,7 @@
             
             # Put system binaries first in PATH to override Nix Swift
             export PATH="/usr/bin:$PATH"
-            
+
             echo "🚀 Lilims development environment"
             echo "🔧 Using system Xcode from: $(xcode-select -p 2>/dev/null || echo 'Xcode not found')"
             echo "🔧 Using system Swift from: $(which swift 2>/dev/null || echo 'Swift not found')"

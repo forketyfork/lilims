@@ -1,8 +1,8 @@
 """Helper to download the TinyStories evaluation corpus."""
 from __future__ import annotations
 
-from pathlib import Path
 import urllib.request
+from pathlib import Path
 
 _DATA_URL = (
     "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/"
@@ -14,7 +14,7 @@ def ensure_dataset(cache_dir: Path | None = None) -> Path:
     """Return the path to the TinyStories dataset, downloading if needed.
 
     The file is cached under ``cache_dir`` (defaults to ``~/.cache/lilims``).
-    Subsequent calls reuse the cached file.
+    Later calls reuse the cached file.
     """
     cache_dir = cache_dir or Path.home() / ".cache" / "lilims"
     cache_dir.mkdir(parents=True, exist_ok=True)

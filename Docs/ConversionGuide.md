@@ -4,15 +4,6 @@ This guide explains how to convert a Hugging Face model or GGUF checkpoint into 
 
 **Current Status**: The conversion pipeline is fully implemented with support for GPT-2, Phi-2, and Gemma architectures using the ML Program format with stateful models. The Python scripts live under the `Scripts` directory and require Python 3.13.
 
-Before running any script, create a virtual environment and install the
-dependencies listed in `requirements.txt`:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-```
-
 ### 1. Convert the model
 
 Run `convert.py` with a model identifier or local path and an output file path:

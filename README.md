@@ -1,4 +1,4 @@
-# Lilims
+#  Lilims
 
 Lilims is an iOS application project focused on running small language models entirely on device. The app can download, convert and execute LLMs using Core ML or llama.cpp backends. The repository now contains a minimal Swift Package that builds an iOS app using Swift 6.0.
 
@@ -21,8 +21,6 @@ Python scripts are linted with [Ruff](https://docs.astral.sh/ruff/) and tested u
 
 
 ## Development Environment
-
-### Option 1: Nix + direnv (Recommended)
 
 The project includes a Nix flake that provides a reproducible development environment with Python dependencies and development utilities. **Note:** This setup uses your system Swift toolchain and Xcode instead of Nix-provided Swift packages to ensure compatibility with Swift 6.0 and modern macOS SDKs.
 
@@ -51,18 +49,6 @@ The Nix environment provides:
 - Development utilities: ripgrep (rg), fd, tree, gh, just
 - System Swift toolchain integration (uses your installed Xcode/Swift)
 - Common development tasks via `just` command runner
-
-### Option 2: Python Virtual Environment
-
-Alternatively, you can set up just the Python environment manually:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-```
-
-**Note:** You'll still need Swift 6.0+ installed separately for this option.
 
 ## Common Tasks
 
