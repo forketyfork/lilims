@@ -5,17 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import numpy as np
+import transformers
+import coremltools as ct
+import gguf
+import torch
 from pathlib import Path
 from typing import Any, Dict, Tuple
-
-
-def _require(module: str):
-    try:
-        return __import__(module)
-    except ModuleNotFoundError as exc:  # pragma: no cover - import guard
-        raise SystemExit(
-            f"Missing required dependency '{module}'. Install it with `pip install {module}`"
-        ) from exc
 
 
 def detect_model_architecture(config: Dict[str, Any]) -> str:
@@ -33,7 +29,6 @@ def detect_model_architecture(config: Dict[str, Any]) -> str:
 
 def get_model_metadata(model_id: str) -> Tuple[Dict[str, Any], str]:
     """Get model configuration and detect architecture."""
-    transformers = _require("transformers")
 
     try:
         config = transformers.AutoConfig.from_pretrained(model_id)
@@ -47,9 +42,6 @@ def get_model_metadata(model_id: str) -> Tuple[Dict[str, Any], str]:
 
 def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
     """Convert a Hugging Face model to Core ML using ML Program format."""
-    ct = _require("coremltools")
-    transformers = _require("transformers")
-    torch = _require("torch")
 
     logging.info(f"Loading model {model_id}...")
     config_dict, architecture = get_model_metadata(model_id)
@@ -69,41 +61,32 @@ def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
     # Convert using ML Program format with stateful model support
     mlmodel = ct.convert(
         model=model,
-        tokenizer=tokenizer,
         source="pytorch",
         convert_to="mlprogram",
         compute_units=ct.ComputeUnit.ALL,
-        # Remove deprecated precision parameter - use post-conversion quantization
-        sequence_length=seq_length,
-        # Enable stateful evaluation for autoregressive generation
-        stateful=True,
+        minimum_deployment_target=ct.target.iOS16,
         # Support flexible input shapes
         inputs=[
             ct.TensorType(
                 name="token",
                 shape=[1],  # Single token input for autoregressive generation
-                dtype=ct.int32
+                dtype=np.int32
             )
         ],
         # Define expected outputs
         outputs=[
             ct.TensorType(
                 name="logits",
-                shape=[config_dict.get("vocab_size", 50257)],
-                dtype=ct.float16
+                dtype=np.float16
             ),
             # Add state outputs for KV cache
             ct.TensorType(
                 name="key",
-                shape=[config_dict.get("n_head", 12), seq_length,
-                       config_dict.get("n_embd", 768) // config_dict.get("n_head", 12)],
-                dtype=ct.float16
+                dtype=np.float16
             ),
             ct.TensorType(
                 name="value",
-                shape=[config_dict.get("n_head", 12), seq_length,
-                       config_dict.get("n_embd", 768) // config_dict.get("n_head", 12)],
-                dtype=ct.float16
+                dtype=np.float16
             )
         ]
     )
@@ -226,8 +209,6 @@ def build_transformer_mlprogram(
         seq_length: int
 ) -> Any:
     """Build a proper transformer model using ML Program format."""
-    ct = _require("coremltools")
-    np = _require("numpy")
 
     logging.info("Building transformer architecture with ML Program...")
     logging.info(f"Available tensors: {list(tensors_dict.keys())[:10]}...")  # Show first 10
@@ -277,7 +258,7 @@ def build_transformer_mlprogram(
     # Create CoreML model using the discovered tensor
     try:
         @ct.convert
-        def transformer_model(token: ct.TensorType(shape=[1], dtype=ct.int32)):
+        def transformer_model(token: ct.TensorType(shape=[1], dtype=np.int32)):
             # Convert token to float for embedding lookup
             token_f32 = ct.cast(token, dtype="fp32")
 
@@ -317,8 +298,6 @@ def build_minimal_transformer_model(
         seq_length: int
 ) -> Any:
     """Build minimal working model when standard tensors aren't found."""
-    ct = _require("coremltools")
-    np = _require("numpy")
 
     logging.info("Building minimal transformer model...")
 
@@ -345,7 +324,7 @@ def build_minimal_transformer_model(
             weight = np.vstack([weight, padding])
 
     @ct.convert
-    def minimal_model(token: ct.TensorType(shape=[1], dtype=ct.int32)):
+    def minimal_model(token: ct.TensorType(shape=[1], dtype=np.int32)):
         # Simple linear model for basic functionality
         token_f32 = ct.cast(token, dtype="fp32")
         logits = ct.linear(x=token_f32, weight=weight)
@@ -367,9 +346,6 @@ def build_minimal_transformer_model(
 
 def convert_gguf(path: Path, output: Path, *, seq_length: int) -> None:
     """Convert a gguf checkpoint to Core ML using ML Program format."""
-    ct = _require("coremltools")
-    gguf = _require("gguf")
-    np = _require("numpy")
 
     logging.info(f"Reading GGUF file {path}...")
     reader = gguf.GGUFReader(path)
@@ -498,7 +474,7 @@ def convert_gguf(path: Path, output: Path, *, seq_length: int) -> None:
         weight = tensor.astype(np.float16)
 
         @ct.convert
-        def simple_model(token: ct.TensorType(shape=[1], dtype=ct.int32)):
+        def simple_model(token: ct.TensorType(shape=[1], dtype=np.int32)):
             # Simple linear transformation
             token_f = ct.cast(token, dtype="fp16")
             logits = ct.linear(x=token_f, weight=weight)
