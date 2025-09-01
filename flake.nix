@@ -13,14 +13,10 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            # Python 3.12 (for coremltools compatibility) with all required packages
+            # Python 3.12 (for coremltools compatibility) with all required packages, except for coremltools
             (python312.withPackages (ps: [
               ps.pip
-              ps.numpy
               ps.pytest
-              ps.torch
-              ps.transformers
-              ps.accelerate
             ]))
 
             # Python development
