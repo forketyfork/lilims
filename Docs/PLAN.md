@@ -34,11 +34,11 @@ App
 ## 3. Model strategy  
 
 1. **Pick baselines**  
-   * Phi‑2 (2.7 B)  
-   * Gemma‑2B‑It  
+   * Phi‑2 (2.7B)  
+   * Gemma‑2B‑It
    * TinyStories‑1M for unit tests.  [oai_citation:13‡GitHub](https://github.com/klyap/swift-coreml-transformers-demo?utm_source=chatgpt.com)  
 
-2. **Convert to Core ML**  
+2. **Convert to CoreML**  
    ```python
    import coremltools as ct
    mlmodel = ct.convert(torch_model,
@@ -89,14 +89,11 @@ Don't build both. The switching abstraction adds complexity for no user benefit.
 
 ## 6. Swift implementation workstreams
 
-⚠️ **CRITICAL ARCHITECTURAL ISSUE IDENTIFIED** (2025-09-01)
-
 The current implementation has diverged from the CoreML-based approach. We have built a pure Swift transformer that doesn't leverage hardware acceleration. This needs immediate correction.
 
 **Required Fix**: Proper CoreML model conversion using either:
 1. PyTorch → ONNX → CoreML pipeline
 2. Direct CoreML model building with NeuralNetworkBuilder
-3. Using existing solutions (MLX-Swift, pre-converted models)
 
 See `ARCHITECTURE_REVIEW.md` for detailed analysis and recommendations.
 
@@ -109,7 +106,7 @@ Cross-cutting concerns:
 
 | ID | Folder | Tasks (can run in parallel) |
 |----|--------|-----------------------------|
-| **WS‑1 CoreMLConversion** | Scripts & notebooks for model -> `.mlpackage`; unit tests validate perplexity drop ≤ 3 % vs FP16. |
+| **WS‑1 CoreMLConversion** | Scripts & notebooks for model -> `.mlpackage`; unit tests validate perplexity drop ≤3% vs FP16. |
 | **WS‑2 RuntimeCoreML** | Build token loop, streaming callback, KV cache tensors, rope & rotary tables. |
 | **WS‑3 ContextWindow** | Implement sliding window attention, memory-mapped weight loading, batch prefill optimization |
 | **WS‑4 Tokenizer** | Port GPT‑2 BPE to Swift + SIMD, fuzz against HuggingFace tokenizer.json. |
@@ -121,17 +118,17 @@ Cross-cutting concerns:
 | **WS‑10 CI/CD** | GitHub Actions: build, unit + integration tests on iPhone‑15, artifact upload to TestFlight. |
 | **WS‑11 AgentScripts** | YAML specs so code‑gen agents can claim tasks and commit PRs. |
 ### WS-1 CoreMLConversion tasks
-- [ ] ⚠️ **NEEDS REWRITE: Create `convert.py`** – Current implementation uses non-existent CoreML APIs. Need proper PyTorch→CoreML or ONNX→CoreML conversion.
 - [x] **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
-- [ ] **Document conversion workflow** in `Docs/ConversionGuide.md` – Needs update after fixing conversion.
+- [x] **Document conversion workflow** in `Docs/ConversionGuide.md`
 - [x] **Parse `--gguf` files** – GGUF parsing works, but conversion to CoreML is broken.
 - [x] **Add TinyStories dataset helper** – download and cache the evaluation corpus for `evaluate_perplexity.py`.
 - [x] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
-- [ ] **NEW: Implement proper CoreML conversion** – Use torch.jit.trace or ONNX intermediate format.
+- [ ] Current implementation of `convert.py` uses non-existent CoreML APIs. Need proper PyTorch→CoreML conversion. 
+      Refer to https://apple.github.io/coremltools/docs-guides/source/convert-pytorch-workflow.html. Use `torch.jit.trace`.
+- [ ] `Docs/ConversionGuide.md` needs update after fixing conversion.
 - [ ] **NEW: Validate ANE compatibility** – Ensure ops are ANE-eligible for hardware acceleration.
-
 
 ### WS-2 RuntimeCoreML tasks
 - [x] **Create `CoreMLBackend.swift`** – Basic structure exists but needs proper CoreML model integration.
