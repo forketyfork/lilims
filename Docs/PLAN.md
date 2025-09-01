@@ -89,6 +89,17 @@ Don't build both. The switching abstraction adds complexity for no user benefit.
 
 ## 6. Swift implementation workstreams
 
+⚠️ **CRITICAL ARCHITECTURAL ISSUE IDENTIFIED** (2025-09-01)
+
+The current implementation has diverged from the CoreML-based approach. We have built a pure Swift transformer that doesn't leverage hardware acceleration. This needs immediate correction.
+
+**Required Fix**: Proper CoreML model conversion using either:
+1. PyTorch → ONNX → CoreML pipeline
+2. Direct CoreML model building with NeuralNetworkBuilder
+3. Using existing solutions (MLX-Swift, pre-converted models)
+
+See `ARCHITECTURE_REVIEW.md` for detailed analysis and recommendations.
+
 Cross-cutting concerns:
 - **Error handling**: surface model load failures and OOM mid-generation gracefully.
 - **Background execution**: request `beginBackgroundTask` during long generations.
@@ -110,29 +121,31 @@ Cross-cutting concerns:
 | **WS‑10 CI/CD** | GitHub Actions: build, unit + integration tests on iPhone‑15, artifact upload to TestFlight. |
 | **WS‑11 AgentScripts** | YAML specs so code‑gen agents can claim tasks and commit PRs. |
 ### WS-1 CoreMLConversion tasks
-- [x] **Create `convert.py`** – convert gguf or PyTorch checkpoints to `.mlpackage` with INT4 weights.
+- [ ] ⚠️ **NEEDS REWRITE: Create `convert.py`** – Current implementation uses non-existent CoreML APIs. Need proper PyTorch→CoreML or ONNX→CoreML conversion.
 - [x] **Write `manifest.json` generator** – store name, size, SHA256 and runtime version.
 - [x] **Provide `evaluate_perplexity.py`** – compare quantized perplexity to FP16 on TinyStories.
 - [x] **Add CI unit test** – fail if perplexity increases more than 3%.
-- [x] **Document conversion workflow** in `Docs/ConversionGuide.md`.
-- [x] **Finalize `--gguf` conversion** – implemented proper GGUF parsing, tensor mapping, and quantization format handling.
+- [ ] **Document conversion workflow** in `Docs/ConversionGuide.md` – Needs update after fixing conversion.
+- [x] **Parse `--gguf` files** – GGUF parsing works, but conversion to CoreML is broken.
 - [x] **Add TinyStories dataset helper** – download and cache the evaluation corpus for `evaluate_perplexity.py`.
 - [x] **Improve error handling** – detect missing dependencies and report user‑friendly CLI errors.
+- [ ] **NEW: Implement proper CoreML conversion** – Use torch.jit.trace or ONNX intermediate format.
+- [ ] **NEW: Validate ANE compatibility** – Ensure ops are ANE-eligible for hardware acceleration.
 
 
 ### WS-2 RuntimeCoreML tasks
-- [x] **Create `CoreMLBackend.swift`** – token loop using stateful model evaluation.
+- [x] **Create `CoreMLBackend.swift`** – Basic structure exists but needs proper CoreML model integration.
 - [x] **Expose `TokenStreamDelegate`** – callback for each generated token.
-- [x] **Implement KV cache tensors** with `MLShapedArray` and LRU paging.
-- [x] **Provide rope & rotary table kernels** with pure Swift implementation.
+- [ ] ⚠️ **ARCHITECTURAL ISSUE: KV cache** – Currently implemented in pure Swift, should be handled by CoreML stateful models.
+- [ ] ⚠️ **ARCHITECTURAL ISSUE: RoPE** – Pure Swift implementation, should be part of CoreML model graph.
 - [x] **Support backpressure-aware streaming** with `AsyncSequence`
 - [x] **Handle OOM errors** and surface to callers
-- [x] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k instead of relying on a precomputed `token` feature.
-- [x] **Feed KV cache back into model inputs** so past context is reused across calls.
+- [x] **Sample from logits** – convert model logits to tokens with adjustable temperature/top‑k.
+- [ ] **Feed KV cache back into model inputs** – Needs CoreML stateful model support.
 - [x] **Add cancellation support** for long‑running generation.
-- [x] **Unit test** decoding 20 tokens from a TinyStories checkpoint.
-- [x] **Implement StatefulTransformerModel** – complete transformer architecture with multi-head attention.
-- [x] **Add comprehensive test suites** – TransformerConfig, StatefulTransformerModel, RoPE, and KV cache tests all passing.
+- [ ] **Unit test** decoding 20 tokens from a real CoreML model (currently skipped - no valid models).
+- [ ] ⚠️ **REMOVE: StatefulTransformerModel** – Pure Swift implementation should be replaced with CoreML execution.
+- [x] **Add comprehensive test suites** – Tests pass but test wrong architecture (pure Swift, not CoreML).
 
 ### WS-3 ContextWindow tasks
 - [ ] **Implement sliding window attention**
