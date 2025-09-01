@@ -20,12 +20,7 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            # Swift development
-            swift
-            swiftformat
-            swiftlint
-            
-            # Apple development tools (macOS only)
+            # macOS development tools
           ] ++ lib.optionals stdenv.isDarwin [
             # macOS development tools available when on Darwin
           ] ++ [
@@ -49,6 +44,7 @@
 
           shellHook = ''
             echo "🚀 Lilims development environment"
+            
             echo "Swift version: $(swift --version | head -n1)"
             echo "Python version: $(python --version)"
             echo "Ruff version: $(ruff --version)"
@@ -56,7 +52,7 @@
             # Swift package manager cache
             export SWIFTPM_CACHE_DIR="$PWD/.build/cache"
             
-            # Helpful aliases
+            # Helpful aliases (using system Swift)
             alias test-swift="swift test"
             alias test-python="pytest Scripts/tests"
             alias lint-python="ruff check Scripts"
