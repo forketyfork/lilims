@@ -12,7 +12,7 @@ Run `convert.py` with a model identifier or local path and an output file path:
 python Scripts/convert.py gpt2 ~/Models/gpt2.mlpackage --seq-length 512
 ```
 
-By default the script expects a Hugging Face model identifier. Pass `--gguf`
+By default, the script expects a Hugging Face model identifier. Pass `--gguf`
 to convert a local GGUF file instead. The script uses `coremltools` ML Program
 format to create stateful models with INT4 quantized weights for optimal
 performance on Apple Neural Engine.

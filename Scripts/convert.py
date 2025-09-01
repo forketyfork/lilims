@@ -46,49 +46,38 @@ def convert_pytorch(model_id: str, output: Path, *, seq_length: int) -> None:
     logging.info(f"Loading model {model_id}...")
     config_dict, architecture = get_model_metadata(model_id)
 
-    model = transformers.AutoModelForCausalLM.from_pretrained(
-        model_id,
-        dtype=torch.float16,
-        device_map="cpu"
-    )
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+    model = transformers.AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.float32)
+    model.eval()
 
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    # GPT-2 expects only input_ids
+    dummy_input = torch.randint(0, config_dict.get("vocab_size", 50257), (1, seq_length), dtype=torch.long)
+
+    logging.info(f"Tracing the model...")
+    # Create a wrapper for proper tracing
+    class TracedModel(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+        
+        def forward(self, input_ids):
+            outputs = self.model(input_ids, return_dict=False)
+            return outputs[0]  # Return only logits
+    
+    wrapped_model = TracedModel(model)
+    wrapped_model.eval()
+    
+    with torch.no_grad():
+        traced_model = torch.jit.trace(wrapped_model, dummy_input)
 
     logging.info(f"Converting {architecture} model to CoreML...")
 
-    # Convert using ML Program format with stateful model support
+    # Convert using ML Program format with proper inputs
     mlmodel = ct.convert(
-        model=model,
-        source="pytorch",
+        traced_model,
+        inputs=[ct.TensorType(name="input_ids", shape=(1, seq_length), dtype=np.int32)],
         convert_to="mlprogram",
         compute_units=ct.ComputeUnit.ALL,
-        minimum_deployment_target=ct.target.iOS16,
-        # Support flexible input shapes
-        inputs=[
-            ct.TensorType(
-                name="token",
-                shape=[1],  # Single token input for autoregressive generation
-                dtype=np.int32
-            )
-        ],
-        # Define expected outputs
-        outputs=[
-            ct.TensorType(
-                name="logits",
-                dtype=np.float16
-            ),
-            # Add state outputs for KV cache
-            ct.TensorType(
-                name="key",
-                dtype=np.float16
-            ),
-            ct.TensorType(
-                name="value",
-                dtype=np.float16
-            )
-        ]
+        minimum_deployment_target=ct.target.iOS16
     )
 
     # Save the model

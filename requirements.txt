@@ -1,6 +1,6 @@
 coremltools==8.3.0
 torch==2.5.0
-transformers
+transformers==4.56.0
 accelerate
 numpy
 gguf
